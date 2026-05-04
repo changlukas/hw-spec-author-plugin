@@ -10,8 +10,8 @@
   "plugins": [
     {
       "name": "hw-spec-author",
-      "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. OpenTitan-Comportability-style structure with D0-D3 stage gates and reader-testing.",
-      "version": "0.1.0",
+      "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. OpenTitan-Comportability-style structure with D0-D3 stage gates and reader-testing. Includes /spec-import for restructuring existing docs and reverse-extracting specs from RTL/hjson.",
+      "version": "0.2.0",
       "source": "./plugins/hw-spec-author",
       "category": "hardware-design",
       "keywords": [

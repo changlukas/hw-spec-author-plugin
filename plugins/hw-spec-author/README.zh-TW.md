@@ -38,7 +38,7 @@ Plugin 強制以下原則：
 
 ### `/spec-init <ip_name> [output_dir]`
 
-Phase 1（Capture / D0）。跑 Capture 訪談並產生 6-file 骨架。
+Phase 1 進入點——**Greenfield**（沒有舊材料）。跑 Capture 訪談並產生 6-file 骨架。
 
 - 詢問 IP 名稱、一句話的目的、bus interface、clock/reset domain、3–8 條 features、是否有 prior art、輸出目錄（預設 `./spec/<ip_name>/`）。
 - 產生每個檔案前會先讀對應 template（在 `references/templates/`）。
@@ -46,6 +46,32 @@ Phase 1（Capture / D0）。跑 Capture 訪談並產生 6-file 骨架。
 - **不會**自己腦補 features。使用者沒講就留 TODO。
 
 完成後會回報：骨架建在哪裡、各檔案有幾個 TODO、建議的下一步動作（通常是先填 `interfaces.md`）。
+
+### `/spec-import <input_path> [output_dir]`
+
+Phase 1 進入點——**Brownfield**（有舊 spec、RTL，或兩者皆有）。把既有材料重組成標準 6-file 配置。
+
+支援的輸入模式（依 `<input_path>` 內容自動偵測）：
+
+| 模式 | 偵測條件 | Canonical 來源 |
+|---|---|---|
+| **Doc** | `.md` / `.txt` 檔 | Prose、敘事段落 |
+| **RTL** | `.sv` / `.v` 檔 | Ports、parameters、register reset values、FSM state names、SVA |
+| **hjson** | `data/*.hjson`（OpenTitan 風格 register defs）| Register map（offsets、widths、fields、reset values）|
+| **Combined** | 上述多種 | RTL/hjson 是 table data 的 canonical；doc 是 prose 的 canonical；衝突會被列出，**不**靜默選邊 |
+| **Verilator XML** | `*.xml`（來自 `verilator --xml-only`）| Mega-IP（>2000 LOC）的結構索引 |
+
+萃取規則記錄在 [`references/process/rtl_extraction.md`](./skills/hw-spec-author/references/process/rtl_extraction.md)。三個信心等級：
+
+- **High**：1-to-1 語法對應（port list、parameter、enum FSM state、`always_ff` 中的 reset value）。產出時附行級 provenance 註解（`<!-- source: rtl/wctmr.sv:42 -->`）。
+- **Medium**：pattern matching（FSM transitions、datapath、error condition）。標 `[draft — verify against design intent]`。
+- **Low / TODO**：結構上萃取不出來（Features capability、programmer's guide use case、performance commitment、design intent）。產出 `TODO(designer):` 標記。
+
+輸出：
+- `<output_dir>` 下的 6-file spec（預設 `./spec/<inferred_ip_name>/`）
+- `IMPORT_REPORT.md`：source manifest、extraction summary、conflicts（combined mode 時）、TODO inventory、recommended next actions
+
+`/spec-import` **不會**宣告 D-stage；輸出最多到 D0、通常還在 pre-D0。Import 完成後跑 `/spec-status` 看離 D1 還差什麼。
 
 ### `/spec-status [path]`
 
@@ -123,7 +149,8 @@ Workflow card。列出四個 phase、所有指令；若 CWD 中能找到 spec，
 ## 工作流程
 
 ```
-Phase 1 — Capture (D0)             /spec-init
+Phase 1 — Capture (D0)             /spec-init           (greenfield)
+                                   /spec-import         (brownfield: doc + RTL + hjson)
    ↓
 Phase 2 — Iterate by section       自然對話, /spec-status, /spec-lint
    ↓
@@ -210,9 +237,9 @@ Plugin 圍繞四個性質打造：
 
 ## 出貨內容
 
-- 1 個 skill：`hw-spec-author`（workflow 引擎 + 6 個 template + 3 份 process 文件）
+- 1 個 skill：`hw-spec-author`（workflow 引擎 + 6 個 template + 4 份 process 文件）
 - 1 個 subagent：`spec-reader`（reader test 用的隔離讀者）
-- 6 個 slash command
+- 7 個 slash command
 - 1 個範例：`wctmr`
 
 ---
@@ -228,6 +255,7 @@ plugins/hw-spec-author/
 │   └── spec-reader.md
 ├── commands/
 │   ├── spec-init.md
+│   ├── spec-import.md
 │   ├── spec-status.md
 │   ├── spec-review.md
 │   ├── spec-lint.md
@@ -246,7 +274,8 @@ plugins/hw-spec-author/
             ├── process/
             │   ├── stage_gates.md
             │   ├── reader_test.md
-            │   └── writing_principles.md
+            │   ├── writing_principles.md
+            │   └── rtl_extraction.md
             └── templates/
                 ├── 01_summary.md
                 ├── 02_theory_of_operation.md

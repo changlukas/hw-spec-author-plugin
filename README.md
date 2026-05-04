@@ -76,13 +76,23 @@ For team-wide or persistent install, add to `~/.claude/settings.json` (global) o
 
 ## Quick start
 
+### Greenfield (no existing material)
+
 ```
 /spec-init my_timer
 ```
 
 This runs the Capture-phase interview (asks for IP purpose, bus interface, clock/reset domains, and 3–8 features), then generates a 6-file OpenTitan-style skeleton at `./spec/my_timer/`. Each file is populated from a template; any unanswered detail becomes a `TODO(designer):` marker rather than a guess.
 
-From there:
+### Brownfield (existing spec / RTL / hjson)
+
+```
+/spec-import path/to/old_spec_or_rtl/
+```
+
+Reads any combination of existing markdown spec, SystemVerilog/Verilog RTL, or OpenTitan-style hjson register definitions, then restructures into the canonical 6-file layout. Mechanically extractable items (ports, parameters, register reset values, FSM state names, SVA assertions) are filled in with line-level provenance comments; everything else becomes a `TODO(designer):`. An `IMPORT_REPORT.md` is generated documenting what was extracted, with what confidence, and any RTL-vs-doc conflicts that need reconciliation.
+
+### Subsequent commands
 
 | Command | When to run | Effect |
 |---|---|---|
@@ -132,7 +142,12 @@ Writing `theory_of_operation.md` first feels natural (it's the "main" doc), but 
 
 ### Phase 1 — Capture (target: D0)
 
-Interview-driven skeleton creation. Goal: a complete 6-file scaffold with `TODO(designer):` markers wherever a detail isn't yet pinned down. Run via `/spec-init <ip_name> [output_dir]`. Do **not** invent features the user didn't state; leave a TODO instead.
+Goal: a complete 6-file scaffold with `TODO(designer):` markers wherever a detail isn't yet pinned down.
+
+- **Greenfield path**: `/spec-init <ip_name> [output_dir]` runs an interview and generates the skeleton from templates. Will not invent features the user didn't state.
+- **Brownfield path**: `/spec-import <input_path> [output_dir]` reads existing material — Markdown spec, SystemVerilog/Verilog RTL, hjson register definitions, or any combination — and restructures into the canonical 6-file layout. RTL is canonical for ports/parameters/registers/FSM; existing prose is canonical for narrative sections. Conflicts are surfaced in `IMPORT_REPORT.md` rather than silently resolved.
+
+Both paths converge to the same output structure and feed Phase 2 identically.
 
 ### Phase 2 — Iterate (D0 → D1)
 
@@ -225,9 +240,9 @@ For the full rationale, read [`SKILL.md`](./plugins/hw-spec-author/skills/hw-spe
 
 ## Components shipped
 
-- 1 skill: `hw-spec-author` (workflow engine + 6 templates + 3 process docs)
+- 1 skill: `hw-spec-author` (workflow engine + 6 templates + 4 process docs)
 - 1 subagent: `spec-reader` (isolated-context reader for the reader test)
-- 6 slash commands: `/spec-init`, `/spec-status`, `/spec-review`, `/spec-lint`, `/spec-gate`, `/spec-help`
+- 7 slash commands: `/spec-init`, `/spec-import`, `/spec-status`, `/spec-review`, `/spec-lint`, `/spec-gate`, `/spec-help`
 - 1 worked example: `wctmr` (64-bit timer with two compare slots, APB slave, programmable prescaler)
 
 ---
@@ -247,6 +262,7 @@ hw-spec-author-plugin/
 │       │   └── spec-reader.md
 │       ├── commands/
 │       │   ├── spec-init.md
+│       │   ├── spec-import.md
 │       │   ├── spec-status.md
 │       │   ├── spec-review.md
 │       │   ├── spec-lint.md
@@ -265,7 +281,8 @@ hw-spec-author-plugin/
 │                   ├── process/
 │                   │   ├── stage_gates.md
 │                   │   ├── reader_test.md
-│                   │   └── writing_principles.md
+│                   │   ├── writing_principles.md
+│                   │   └── rtl_extraction.md
 │                   └── templates/
 │                       ├── 01_summary.md
 │                       ├── 02_theory_of_operation.md

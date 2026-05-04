@@ -76,13 +76,23 @@
 
 ## 快速上手
 
+### Greenfield（從零開始，沒有舊材料）
+
 ```
 /spec-init my_timer
 ```
 
 會跑 Capture phase 訪談（問你 IP 的目的、bus interface、clock/reset domain、3–8 條 features），然後在 `./spec/my_timer/` 產生 6 個檔案的 OpenTitan 風格骨架。每個檔案會用 template 填入；你沒回答到的細節會留 `TODO(designer):`，**不會**被亂猜。
 
-接下來：
+### Brownfield（已有舊 spec / RTL / hjson）
+
+```
+/spec-import path/to/old_spec_or_rtl/
+```
+
+讀任意組合：既有 markdown spec、SystemVerilog/Verilog RTL、OpenTitan 風格 hjson register 定義，重組成標準 6-file 配置。可機械性萃取的項目（ports、parameters、register reset values、FSM state names、SVA assertions）會被填入並加上行級 provenance 註解；其餘留 `TODO(designer):`。同時產出 `IMPORT_REPORT.md`，記錄萃取了什麼、信心多高、RTL vs doc 之間有哪些衝突需要 reconcile。
+
+### 後續指令
 
 | 指令 | 何時執行 | 做什麼 |
 |---|---|---|
@@ -132,7 +142,12 @@ Skill 強制以下順序，避免循環改寫：
 
 ### Phase 1 — Capture（目標：D0）
 
-訪談式骨架建立。目標：產出含 `TODO(designer):` 標記的完整 6-file 骨架，凡是還沒釘住的細節都標 TODO。透過 `/spec-init <ip_name> [output_dir]` 啟動。**不要**幫使用者腦補沒提到的 feature；留 TODO 就好。
+目標：產出含 `TODO(designer):` 標記的完整 6-file 骨架，凡是還沒釘住的細節都標 TODO。
+
+- **Greenfield**：`/spec-init <ip_name> [output_dir]` 走訪談、用 template 產生骨架。**不會**自動腦補沒講到的 feature。
+- **Brownfield**：`/spec-import <input_path> [output_dir]` 讀既有材料——Markdown spec、SystemVerilog/Verilog RTL、hjson register 定義，或任意組合——重組成標準 6-file 配置。RTL 是 ports/parameters/registers/FSM 的 canonical source；既有 prose 是敘事段落的 canonical source。衝突會被列入 `IMPORT_REPORT.md`，**不會**靜默自動選邊。
+
+兩條路徑會匯流到相同的輸出結構，後續 Phase 2 流程一致。
 
 ### Phase 2 — Iterate（D0 → D1）
 
@@ -230,9 +245,9 @@ Plugin 圍繞四個性質打造，每個 gate 都會檢查：
 
 ## 出貨內容
 
-- 1 個 skill：`hw-spec-author`（workflow 引擎 + 6 個 template + 3 份 process 文件）
+- 1 個 skill：`hw-spec-author`（workflow 引擎 + 6 個 template + 4 份 process 文件）
 - 1 個 subagent：`spec-reader`（reader test 用的隔離讀者）
-- 6 個 slash command：`/spec-init`、`/spec-status`、`/spec-review`、`/spec-lint`、`/spec-gate`、`/spec-help`
+- 7 個 slash command：`/spec-init`、`/spec-import`、`/spec-status`、`/spec-review`、`/spec-lint`、`/spec-gate`、`/spec-help`
 - 1 個範例：`wctmr`（64-bit timer，雙 compare slot、APB slave、可程式化 prescaler）
 
 ---
@@ -252,6 +267,7 @@ hw-spec-author-plugin/
 │       │   └── spec-reader.md
 │       ├── commands/
 │       │   ├── spec-init.md
+│       │   ├── spec-import.md
 │       │   ├── spec-status.md
 │       │   ├── spec-review.md
 │       │   ├── spec-lint.md
@@ -270,7 +286,8 @@ hw-spec-author-plugin/
 │                   ├── process/
 │                   │   ├── stage_gates.md
 │                   │   ├── reader_test.md
-│                   │   └── writing_principles.md
+│                   │   ├── writing_principles.md
+│                   │   └── rtl_extraction.md
 │                   └── templates/
 │                       ├── 01_summary.md
 │                       ├── 02_theory_of_operation.md

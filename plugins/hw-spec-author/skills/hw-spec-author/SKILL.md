@@ -1,6 +1,6 @@
 ---
 name: hw-spec-author
-description: Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks (RTL modules). Use whenever the user wants to write, draft, scaffold, restructure, or review a hardware design spec, micro-architecture spec, IP datasheet, RTL spec, register spec, or design document for a digital block. Triggers include phrases like "write a spec for", "design spec", "micro-arch spec", "draft a hardware spec", "IP datasheet", "module specification", "RTL specification", or any request to document a hardware module before or during implementation. The skill enforces an OpenTitan-Comportability-style structure (summary / theory of operation / programmer's guide / interfaces / registers / DV plan), staged completion gates (D0→D3), and reader-testing for ambiguity. Use this skill even when the user does not explicitly say "skill" — if they are writing or planning to write a hardware design document, this is the right skill.
+description: Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks (RTL modules). Use whenever the user wants to write, draft, scaffold, restructure, review, **import an existing spec**, or **reverse-extract a spec from RTL** for a hardware design spec, micro-architecture spec, IP datasheet, RTL spec, register spec, or design document for a digital block. Triggers include phrases like "write a spec for", "design spec", "micro-arch spec", "draft a hardware spec", "IP datasheet", "module specification", "RTL specification", "convert this RTL to a spec", "restructure this old spec", "extract spec from SystemVerilog", or any request to document a hardware module before, during, or after implementation. The skill enforces an OpenTitan-Comportability-style structure (summary / theory of operation / programmer's guide / interfaces / registers / DV plan), staged completion gates (D0→D3), and reader-testing for ambiguity. Use this skill even when the user does not explicitly say "skill" — if they are writing or planning to write a hardware design document, this is the right skill.
 ---
 
 # Hardware Design Spec Author
@@ -112,10 +112,15 @@ references/
 └── process/
     ├── stage_gates.md
     ├── reader_test.md
-    └── writing_principles.md
+    ├── writing_principles.md
+    └── rtl_extraction.md
 ```
 
-Read templates as needed when writing the corresponding section. Read process files at the appropriate phase transitions.
+Read templates as needed when writing the corresponding section. Read process files at the appropriate phase transitions:
+- `stage_gates.md` — at every gate ceremony.
+- `reader_test.md` — before Phase 3 (reader test).
+- `writing_principles.md` — at the start of every writing session, and when reviewing.
+- `rtl_extraction.md` — only when running `/spec-import` against RTL source.
 
 ## Worked example
 
@@ -137,12 +142,15 @@ When this skill is installed as part of the `hw-spec-author` Claude Code plugin,
 
 | Command | Phase | Purpose |
 |---|---|---|
-| `/spec-init <ip_name> [output_dir]` | Phase 1 | Run the Capture interview, generate the 6-file skeleton |
+| `/spec-init <ip_name> [output_dir]` | Phase 1 (greenfield) | Run the Capture interview, generate the 6-file skeleton |
+| `/spec-import <input_path> [output_dir]` | Phase 1 (brownfield) | Import existing doc / RTL / hjson and restructure into the 6-file layout. Produces `IMPORT_REPORT.md` documenting provenance and conflicts. See `references/process/rtl_extraction.md`. |
 | `/spec-status [path]` | Phase 2 | Inspect current spec, report current D-stage, list open items |
 | `/spec-review [path]` | Phase 3 | Run reader test via the `spec-reader` subagent (isolated context); produce ambiguity-gap report |
 | `/spec-lint [path]` | any | Mechanical consistency check: broken xrefs, untracked TODOs, Feature↔testpoint mapping, register/port casing |
 | `/spec-gate <D1\|D2\|D3>` | Phase 4 | Check stage-gate checklist; persistent waivers in `WAIVERS.md` |
 | `/spec-help` | any | Workflow overview, current state, suggested next command |
+
+**Greenfield vs brownfield**: use `/spec-init` when starting from scratch (interview-driven). Use `/spec-import` when there is existing material (a prior spec, RTL source, or both); the import populates the skeleton with what is mechanically extractable and tags everything else as `TODO(designer):`. After either entry point, the rest of the workflow (Phase 2 → 3 → 4) is identical.
 
 Commands are explicit invocations; the skill itself activates ambiently from natural language. Both paths reach the same underlying logic — commands just give the user a predictable handle when they want one.
 

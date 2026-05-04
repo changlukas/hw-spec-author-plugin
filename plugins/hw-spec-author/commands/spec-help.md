@@ -19,7 +19,8 @@ Workflow (4 phases, gated D0 → D3):
 
   Phase 1 — Capture (D0)
     Goal: skeleton with all 6 files, accurate placeholders.
-    Trigger: /spec-init <ip_name>
+    Greenfield: /spec-init <ip_name>          (interview-driven)
+    Brownfield: /spec-import <input_path>     (extract from existing doc / RTL / hjson)
 
   Phase 2 — Iterate by section (D0 → D1)
     Goal: every section reaches D1 completeness.
@@ -44,7 +45,14 @@ Workflow (4 phases, gated D0 → D3):
 Available commands:
 
   /spec-init <ip_name> [output_dir]
-      Start a new spec. Runs the Capture interview, generates skeleton.
+      Start a new spec from scratch. Runs the Capture interview, generates
+      skeleton.
+
+  /spec-import <input_path> [output_dir]
+      Import existing material into the canonical 6-file layout.
+      Inputs supported: existing markdown spec, SystemVerilog/Verilog RTL,
+      OpenTitan-style hjson register defs, or any combination.
+      Produces IMPORT_REPORT.md with provenance and conflict log.
 
   /spec-status [path]
       Inspect existing spec. Reports current D-stage and what's missing.
@@ -70,7 +78,8 @@ Available commands:
    - Estimated current stage (quick scan of README + 1-2 key files; not the full `/spec-status` analysis)
    - Suggested next command based on state:
 
-   - **No spec** → "Start with `/spec-init <ip_name>`."
+   - **No spec, greenfield** → "Start with `/spec-init <ip_name>`."
+   - **No spec, but existing doc / RTL available** → "Use `/spec-import <path>` to bootstrap from existing material; review the IMPORT_REPORT.md it produces."
    - **Skeleton only / pre-D0** → "Fill out interfaces.md and registers.md next, or run `/spec-status` for a structured progress check."
    - **Working at D0/D1** → "Run `/spec-status` to see what's still open. When all D1 items look ready, run `/spec-review` then `/spec-gate D1`."
    - **At D1, no review yet** → "Run `/spec-review` before claiming D1."

@@ -38,7 +38,7 @@ The plugin enforces:
 
 ### `/spec-init <ip_name> [output_dir]`
 
-Phase 1 (Capture / D0). Runs the Capture interview and generates the 6-file skeleton.
+Phase 1 entry point — **greenfield** (no existing material). Runs the Capture interview and generates the 6-file skeleton.
 
 - Asks for IP name, one-sentence purpose, bus interface, clock/reset domains, top-level features (3–8 bullets), prior art if any, and target output directory (default `./spec/<ip_name>/`).
 - Reads each template under `references/templates/` before generating its corresponding file.
@@ -46,6 +46,32 @@ Phase 1 (Capture / D0). Runs the Capture interview and generates the 6-file skel
 - Will **not** invent features. If the user did not state it, it stays a TODO.
 
 After completion, it reports where the skeleton was created, how many TODO markers remain (per file), and a recommended next action (typically: fill in `interfaces.md` first).
+
+### `/spec-import <input_path> [output_dir]`
+
+Phase 1 entry point — **brownfield** (existing spec, RTL, or both). Restructures existing material into the canonical 6-file layout.
+
+Supported input modes (auto-detected from `<input_path>` contents):
+
+| Mode | Detected when | Canonical for |
+|---|---|---|
+| **Doc** | `.md` / `.txt` files | Prose, narrative sections |
+| **RTL** | `.sv` / `.v` files | Ports, parameters, register reset values, FSM state names, SVA |
+| **hjson** | `data/*.hjson` (OpenTitan-style register defs) | Register map (offsets, widths, fields, reset values) |
+| **Combined** | Multiple of the above | RTL/hjson canonical for tables; doc canonical for prose; conflicts surfaced rather than silently resolved |
+| **Verilator XML** | `*.xml` from `verilator --xml-only` | Used as structural index for mega-IPs (>2000 LOC) |
+
+Extraction rules are documented in [`references/process/rtl_extraction.md`](./skills/hw-spec-author/references/process/rtl_extraction.md). Three confidence levels:
+
+- **High**: 1-to-1 syntactic mapping (port lists, parameters, enum FSM states, reset values from `always_ff`). Emitted with line-level provenance comments (`<!-- source: rtl/wctmr.sv:42 -->`).
+- **Medium**: pattern matched (FSM transitions traced through `case` statements, datapath inferred from instance graph, error conditions inferred from naming). Tagged `[draft — verify against design intent]`.
+- **Low / TODO**: structurally not extractable (Features capability list, programmer's guide use cases, performance commitments, design intent). Emitted as `TODO(designer):` markers.
+
+Outputs:
+- The 6-file spec at `<output_dir>` (default `./spec/<inferred_ip_name>/`).
+- `IMPORT_REPORT.md` documenting source manifest, extraction summary, conflicts (if combined mode), TODO inventory, and recommended next actions.
+
+`/spec-import` does **not** claim a D-stage; the output is at most D0 and usually pre-D0. Run `/spec-status` after the import to see what's left to reach D1.
 
 ### `/spec-status [path]`
 
@@ -123,7 +149,8 @@ Slash commands and natural-language activation reach the same workflow. Use whic
 ## Workflow
 
 ```
-Phase 1 — Capture (D0)             /spec-init
+Phase 1 — Capture (D0)             /spec-init           (greenfield)
+                                   /spec-import         (brownfield: doc + RTL + hjson)
    ↓
 Phase 2 — Iterate by section       natural conversation, /spec-status, /spec-lint
    ↓
@@ -210,9 +237,9 @@ For full rationale, read [`skills/hw-spec-author/SKILL.md`](./skills/hw-spec-aut
 
 ## Components shipped
 
-- 1 skill: `hw-spec-author` (workflow engine + 6 templates + 3 process documents)
+- 1 skill: `hw-spec-author` (workflow engine + 6 templates + 4 process documents)
 - 1 subagent: `spec-reader` (isolated-context reader for the reader test)
-- 6 slash commands
+- 7 slash commands
 - 1 worked example: `wctmr`
 
 ---
@@ -228,6 +255,7 @@ plugins/hw-spec-author/
 │   └── spec-reader.md
 ├── commands/
 │   ├── spec-init.md
+│   ├── spec-import.md
 │   ├── spec-status.md
 │   ├── spec-review.md
 │   ├── spec-lint.md
@@ -246,7 +274,8 @@ plugins/hw-spec-author/
             ├── process/
             │   ├── stage_gates.md
             │   ├── reader_test.md
-            │   └── writing_principles.md
+            │   ├── writing_principles.md
+            │   └── rtl_extraction.md
             └── templates/
                 ├── 01_summary.md
                 ├── 02_theory_of_operation.md
