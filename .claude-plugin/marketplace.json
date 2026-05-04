@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-marketplace.json",
+  "name": "changlukas",
+  "version": "1.0.0",
+  "description": "Hardware design tooling for Claude Code by changlukas. Currently includes hw-spec-author for authoring digital IP design specs.",
+  "owner": {
+    "name": "changlukas",
+    "url": "https://github.com/changlukas"
+  },
+  "plugins": [
+    {
+      "name": "hw-spec-author",
+      "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. OpenTitan-Comportability-style structure with D0-D3 stage gates and reader-testing.",
+      "version": "0.1.0",
+      "source": "./plugins/hw-spec-author",
+      "category": "hardware-design",
+      "keywords": [
+        "hardware",
+        "rtl",
+        "specification",
+        "ic-design",
+        "verification",
+        "systemverilog"
+      ]
+    }
+  ]
+}

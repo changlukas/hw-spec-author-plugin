@@ -1,0 +1,20 @@
+{
+  "name": "hw-spec-author",
+  "version": "0.1.0",
+  "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. OpenTitan-Comportability-style structure with D0-D3 stage gates and reader-testing.",
+  "author": {
+    "name": "changlukas",
+    "url": "https://github.com/changlukas"
+  },
+  "homepage": "https://github.com/changlukas/hw-spec-author-plugin",
+  "repository": "https://github.com/changlukas/hw-spec-author-plugin",
+  "license": "Apache-2.0",
+  "keywords": [
+    "hardware",
+    "rtl",
+    "specification",
+    "ic-design",
+    "verification",
+    "systemverilog"
+  ]
+}
