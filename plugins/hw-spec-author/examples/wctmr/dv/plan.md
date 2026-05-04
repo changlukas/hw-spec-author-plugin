@@ -45,6 +45,8 @@ Out of scope:
 | TP-13 | "Two compares fire same cycle"             | Set CMP0 == CMP1, both enabled; verify both `INTR_STATE` bits set in the same cycle. |
 | TP-14 | "INTR_TEST forces INTR_STATE"              | Write `INTR_TEST.cmp0_match = 1`; verify `INTR_STATE.cmp0_match` sets, even with no compare condition met. |
 | TP-15 | "Coherent 64-bit counter read idiom"       | Run a directed test exercising the hi/lo/hi loop pattern from Programmer's Guide §Use case D; verify retry triggers around rollover. |
+| TP-16 | "Out-of-range prescale_log2 clamping"      | Write `CTRL.prescale_log2 = 16, 17, 31`; verify register reads back the written value, no `PSLVERR` is raised, and the effective prescaler period equals `2^PRESCALE_W`. |
+| TP-17 | "Reset asserted mid-APB-transaction"       | Drive an APB write or read; assert `rst_ni` between setup and access phases; verify slave outputs return to reset values within 1 `clk_i` cycle and post-reset operation is normal. |
 
 ## Functional coverage model
 

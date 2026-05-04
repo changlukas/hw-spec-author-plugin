@@ -82,24 +82,37 @@ LINT-003 in README.md:Features bullet 4
 
 ### LINT-004: Register name consistency
 
-Scan for register names. A register has a canonical name in `registers.md` (e.g., `INTR_STATE`, `CTRL`). All references in other files must use the same case.
+A register has a canonical name in `registers.md` (e.g., `INTR_STATE`, `CTRL`). All references in other files must use that exact spelling.
+
+The check is **canonical-driven**, not pattern-driven — do not flag arbitrary uppercase tokens. Acronyms like `APB`, `PSLVERR`, `RTL`, `FSM`, `IRQ`, `FPV`, `RW1C` are not register names and must not be flagged.
 
 Procedure:
-- Extract canonical register names from `registers.md` register map table (first column).
-- For each spec file, find candidate register references using regex like `\b[A-Z][A-Z0-9_]{2,}\b` (or use already-quoted register names in backticks).
-- Flag mismatches: e.g., `Intr_State` or `intr_state` when the canonical is `INTR_STATE`.
+1. Extract the canonical register name set `R` from the first column of the `## Register map` table in `registers.md`. These are the only names eligible for this check.
+2. For each canonical name `r ∈ R`, build the set of *plausible case variants* you would expect to see if the author drifted:
+   - lowercase: `intr_state`
+   - Title_Snake: `Intr_State`
+   - PascalCase (drop underscores): `IntrState`
+   - all-lowercase joined: `intrstate`
+3. For each spec file other than `registers.md` itself, search for occurrences of any variant from step 2 (case-sensitive, whole-word, **excluding** any occurrence equal to the canonical `r`).
+4. Each hit is a violation. Report file, line, the variant found, and the canonical spelling.
+
+**Do not** scan with a generic uppercase regex; that produces 50–75% false-positive noise (acronyms, parameter names, RTL tokens, FSM state names).
 
 **Violation example:**
 ```
 LINT-004 in programmers_guide.md:67
-  Reference: "intr_state"
-  Canonical: "INTR_STATE"
-  Suggested fix: use canonical case for register names.
+  Found: "intr_state"
+  Canonical (per registers.md): "INTR_STATE"
+  Suggested fix: use canonical spelling "INTR_STATE".
 ```
 
 ### LINT-005: Port / signal name consistency
 
-Same as LINT-004 but for ports listed in `interfaces.md`.
+Apply the same canonical-driven approach as LINT-004, but with the canonical set drawn from the signal columns of the tables in `interfaces.md` (Clocks, Resets, Bus interface signal tables, Sideband, Interrupts, Alerts, Inter-IP). Ports often use mixed-case suffixes (`_i`, `_o`, `_ni`); apply variant generation accordingly:
+- canonical `clk_i`: variants include `CLK_I`, `Clk_I`, `clk_in`, `clki`
+- canonical `intr_cmp0_o`: variants include `INTR_CMP0_O`, `intr_cmp0`, `IntrCmp0_o`
+
+Same exclusion rule: do not flag generic identifiers that happen to resemble a port name; only flag explicit case-variants of canonical entries from the interfaces tables.
 
 ### LINT-006: Reset value format
 

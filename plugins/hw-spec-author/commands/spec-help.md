@@ -34,6 +34,12 @@ Workflow (4 phases, gated D0 → D3):
     Goal: verify checklist completeness at each transition.
     Trigger: /spec-gate D1 | /spec-gate D2 | /spec-gate D3
 
+  Cross-cutting (any phase)
+    Goal: catch mechanical drift — broken xrefs, untracked TODOs,
+          Feature ↔ testpoint gaps, register / port casing.
+    Trigger: /spec-lint
+    Run periodically while iterating in Phase 2; required-clean before /spec-gate D1.
+
 
 Available commands:
 

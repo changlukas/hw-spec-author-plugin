@@ -20,48 +20,50 @@ You are running a **stage-gate ceremony** for the hw-spec-author skill.
    - For `/spec-gate D3`, all D2 items must be ✓.
    - If a prerequisite gate is not met, do **not** check the requested gate. Tell the user which earlier gate to close first, and run that check instead.
 
-4. **Run the checklist**. For the requested gate, walk **every item** from `stage_gates.md`. For each:
+4. **Run the checklist**. For the requested gate, walk **every item** from `stage_gates.md`. Each item carries an explicit anchor in the form `(id: <stage>.<scope>.<short_name>)` — extract this anchor verbatim; do not derive or paraphrase it. For each item:
    - Mark **✓** if satisfied.
    - Mark **✗** with a one-line reason if not.
-   - Mark **⚠ waived** if the item is recorded as waived in `<spec_root>/WAIVERS.md` (see step 4a).
+   - Mark **⚠ waived** if the item's anchor is recorded as waived in `<spec_root>/WAIVERS.md` (see step 4a).
 
 ### 4a. Waiver persistence
 
-Waivers must persist across sessions. Read `<spec_root>/WAIVERS.md` if it exists. Format:
+Waivers must persist across sessions. Read `<spec_root>/WAIVERS.md` if it exists. The waiver file uses each item's anchor (from `stage_gates.md`) as an `## H2` heading. Format:
 
 ```markdown
 # Spec Waivers
 
 Each entry waives one stage-gate checklist item with a documented rationale.
-Waivers do not auto-expire; remove them when the underlying issue is resolved.
+The H2 heading must match a checklist anchor from stage_gates.md exactly
+(case-sensitive). Waivers do not auto-expire; remove them when the underlying
+issue is resolved.
 
 ---
 
 ## D2.sec_cm_list
 
-- **Item**: "Sec_cm list (if security-critical) is exhaustive and reflected in dv/plan.md."
+- **Item text** (copy from stage_gates.md): "Sec_cm list (if security-critical) is exhaustive and reflected in dv/plan.md."
 - **Waived by**: <user identifier or name>
 - **Date**: 2026-04-15
 - **Rationale**: Block has no security role. Asset list confirmed empty by security WG review (link or quote).
 
 ---
 
-## D1.performance
+## D1.too.performance
 
-- **Item**: "Performance commitments stated, or 'no performance commitment' explicitly stated."
+- **Item text**: "Performance commitments stated, or 'no performance commitment' explicitly stated."
 - **Waived by**: <user>
 - **Date**: 2026-04-20
 - **Rationale**: Performance specification deferred to architecture review meeting on 2026-05-01. Tracked in issue #87.
 ```
 
-When checking the gate, treat any item whose anchor (e.g., `D2.sec_cm_list`) appears as an `## H2` heading in `WAIVERS.md` as **⚠ waived**, and surface the rationale in the report.
+Matching rule: an item is **⚠ waived** iff its anchor (the `(id: ...)` token in `stage_gates.md`) appears verbatim as an `## H2` heading in `WAIVERS.md`. If the anchor is missing or misspelled, the item is **not** waived — surface this as a separate report line so the user can fix the waiver.
 
 ### 4b. Adding a waiver
 
 If during the gate check the user explicitly waives an open ✗ item, do **not** mark it waived in the report immediately. Instead:
 - Confirm the user wants to record the waiver permanently.
 - Ask for: who is waiving (their name or identifier) and a one-sentence rationale.
-- Append the waiver to `<spec_root>/WAIVERS.md` (creating the file if needed).
+- Append the waiver to `<spec_root>/WAIVERS.md` (creating the file if needed). Use the item's anchor from `stage_gates.md` verbatim as the `## H2` heading. Copy the item text into the **Item text** bullet so the waiver is self-explanatory if the source checklist evolves.
 - Re-run step 4 so the waiver shows as ⚠ in the report.
 
 A bare "skip that" without rationale is rejected; ask for the rationale before recording.

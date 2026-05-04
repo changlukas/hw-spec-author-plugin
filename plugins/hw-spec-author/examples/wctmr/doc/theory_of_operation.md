@@ -79,9 +79,13 @@ The counter does not increment until software writes `CTRL.enable = 1`, even tho
 
 There is no software-to-block reset register. Software can clear the counter by writing 0 to `CNT_LO` then `CNT_HI`. There is no path to clear the entire block other than asserting `rst_ni`.
 
+If `rst_ni` asserts during an APB transaction, wctmr drops the transaction. `pready_o`, `prdata_o`, and `pslverr_o` return to their reset values within one `clk_i` cycle of `rst_ni` being sampled low. Because the slave's outputs go away mid-handshake, the requestor's view of that transaction is undefined; software must treat any transaction outstanding when reset asserts as having neither completed nor errored, and must re-issue after reset deassertion.
+
 ## Clock domains and CDC
 
 wctmr is single-clock-domain. The APB slave operates on `clk_i`. Synchronization between the host bus and `clk_i`, if needed, is the responsibility of the bus adapter outside this block. There are no internal CDC paths.
+
+wctmr places no constraint on the relative frequency of `clk_i` and any external host bus clock. Any frequency relationship is permitted (synchronous, asynchronous, integer ratio, irrational ratio); the integration-level bus adapter handles synchronization without involvement from wctmr.
 
 ## Power domains
 
@@ -102,6 +106,8 @@ wctmr has minimal error reporting:
 The block does not detect or report:
 - Counter overflow (wrap-around). This is normal operation, not an error.
 - Software writing to `CNT_LO`/`CNT_HI` while the block is enabled. The write completes; the counter discontinuity is software's responsibility.
+
+No error condition listed in the table above latches wctmr into a stuck state. Each error is per-transaction; the block returns to normal operation on the cycle following the offending input. `rst_ni` is never required to recover from a wctmr-detectable error.
 
 ## Performance
 

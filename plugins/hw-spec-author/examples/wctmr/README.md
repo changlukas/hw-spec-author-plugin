@@ -10,7 +10,6 @@ This document specifies the Wallclock Timer (wctmr) hardware IP. The block provi
 - Two independent compare slots (`CMP0`, `CMP1`), each generating a maskable interrupt when the counter reaches or exceeds its programmed compare value.
 - Counter and compare values are software-readable and software-writable. Writes to the low half of the counter freeze the increment for one cycle to keep the 64-bit write atomic from software's perspective.
 - Programmable prescaler from divide-by-1 (no division) to divide-by-32768 (2^15), selectable at runtime.
-- Software-issued counter reset clears the counter to zero without affecting compare values or interrupt state.
 - Single clock domain, single reset domain. Reset is synchronous, active-low (`rst_ni`).
 
 ## Description

@@ -106,4 +106,4 @@ Spec content defaults to English (industry convention; aligns with OpenTitan, AR
 
 ## License
 
-Apache 2.0.
+Apache 2.0. See [LICENSE](../../LICENSE).

@@ -32,7 +32,7 @@ Offsets 0x2C..0x3F are unmapped. APB access to these returns `PSLVERR`.
 | Bits   | Field         | Access | Reset | Description                                                   |
 |--------|---------------|--------|-------|---------------------------------------------------------------|
 | [0]    | enable        | RW     | 0x0   | Block-level enable. When 0, the counter is frozen. See Theory of Operation §Datapath. |
-| [5:1]  | prescale_log2 | RW     | 0x0   | Prescaler divider = 2^prescale_log2. Range 0..15 (1..32768). Values 16..31 are reserved; software must not write them. See Theory of Operation §Datapath. |
+| [5:1]  | prescale_log2 | RW     | 0x0   | Prescaler divider = 2^prescale_log2. Valid range 0..PRESCALE_W (default 0..15 → 1..32768). Software writes outside the valid range are accepted in the register (read-back returns the written value), but the prescaler hardware clamps the effective period to 2^PRESCALE_W cycles. No `PSLVERR` is raised for out-of-range values; the register acts as a soft contract. See Theory of Operation §Datapath. |
 | [16]   | cmp0_en       | RW     | 0x0   | Enable compare slot 0. When 0, `CMP0_LO` / `CMP0_HI` are still readable but cannot fire `intr_cmp0_o`. |
 | [17]   | cmp1_en       | RW     | 0x0   | Enable compare slot 1. As above for slot 1.                   |
 | [15:6], [31:18] | — | RO     | 0x0   | Reserved. Reads as 0; writes ignored.                          |

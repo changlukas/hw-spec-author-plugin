@@ -1,7 +1,7 @@
 ---
 description: Start a new hardware design spec. Creates the OpenTitan-style 6-file skeleton and begins the Capture-phase interview.
 argument-hint: <ip_name> [output_dir]
-allowed-tools: Read, Write, Glob, Bash
+allowed-tools: Read, Write, Glob
 ---
 
 You are activating Phase 1 (Capture / D0) of the **hw-spec-author** skill.

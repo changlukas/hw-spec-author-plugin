@@ -7,7 +7,7 @@ Naming convention: `_i` = input, `_o` = output, `_n` = active-low. Internal-only
 | Name            | Type / Range  | Default | Description                                                |
 |-----------------|---------------|---------|------------------------------------------------------------|
 | ADDR_WIDTH      | int (4..12)   | 6       | APB address width. Must cover at least the 0x00..0x28 register range. |
-| PRESCALE_W      | int (1..16)   | 16      | Internal prescaler counter width. Limits maximum prescaler period to 2^PRESCALE_W. |
+| PRESCALE_W      | int (1..15)   | 15      | Internal prescaler counter width. The valid range of `CTRL.prescale_log2` is 0..PRESCALE_W; with the default, the maximum prescaler period is 2^15 (32768 cycles). |
 
 ## Clocks
 

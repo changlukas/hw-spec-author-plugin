@@ -5,19 +5,21 @@
 Verified initialization sequence after `rst_ni` deassertion:
 
 ```c
-// 1. Confirm block is in reset-default state (counter == 0, all compares disabled)
-assert(read(STATUS) == 0);
+// 1. Bring the block to a known-disabled state. Safe to run after either a
+//    fresh reset (where this is a no-op) or a warm restart from a prior
+//    session (where it discards leftover configuration).
+write(CTRL, 0x0);            // counter frozen, both compare slots disabled
 
-// 2. Clear any stale interrupt state from prior sessions (defensive)
-write(INTR_STATE, 0x3);  // write 1 to both bits to clear
+// 2. Clear any stale interrupt state from prior sessions.
+write(INTR_STATE, 0x3);      // write 1 to both bits to clear
 
-// 3. Optionally configure the prescaler. prescale_log2=0 → no division.
-// Example: divide-by-256 for a slow tick.
-uint32_t ctrl = (8 << 1);  // prescale_log2 = 8
+// 3. Optionally configure the prescaler. prescale_log2 = 0 → no division.
+//    Example: divide-by-256 for a slow tick.
+uint32_t ctrl = (8 << 1);    // prescale_log2 = 8
 write(CTRL, ctrl);
 
 // 4. Enable the block. Counter begins incrementing on the next prescaler tick.
-write(CTRL, ctrl | 0x1);  // OR in CTRL.enable
+write(CTRL, ctrl | 0x1);     // OR in CTRL.enable
 
 // 5. Block is now running.
 ```
@@ -163,7 +165,7 @@ Status reads (`STATUS`, `INTR_STATE`) are racy with hardware updates: a read on 
 wctmr has no software-issued block reset. Equivalent operations:
 
 - **Clear the counter:** write 0 to `CNT_LO`, then 0 to `CNT_HI`.
-- **Disable everything:** write 0 to `CTRL`. This freezes the counter, disables both compare slots, and clears `INTR_ENABLE` is not — `INTR_ENABLE` stays at its previously-written value because writing 0 to `CTRL` does not affect `INTR_ENABLE`. Software clears `INTR_ENABLE` separately.
+- **Disable everything:** write 0 to `CTRL`. This freezes the counter and disables both compare slots. It does **not** clear `INTR_ENABLE`; `INTR_ENABLE` retains its previously-written value because it is a separate register. Software clears `INTR_ENABLE` separately if desired.
 - **Clear pending interrupts:** write `0x3` to `INTR_STATE`.
 
 To return to full reset state, assert `rst_ni` from the SoC reset controller.
