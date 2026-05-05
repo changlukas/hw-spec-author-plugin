@@ -1,7 +1,7 @@
 {
   "name": "hw-spec-author",
-  "version": "0.2.0",
-  "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. OpenTitan-Comportability-style structure with D0-D3 stage gates and reader-testing.",
+  "version": "0.3.0",
+  "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. Two modes: behavioral-block (OpenTitan-Comportability 6-file structure) and protocol-bfm (9-11 file structure with pin-level rigor, protocol rules, transaction/channel API). D0-D3 stage gates and reader-testing in both modes.",
   "author": {
     "name": "changlukas",
     "url": "https://github.com/changlukas"
@@ -15,6 +15,12 @@
     "specification",
     "ic-design",
     "verification",
-    "systemverilog"
+    "systemverilog",
+    "bfm",
+    "vip",
+    "transactor",
+    "axi",
+    "apb",
+    "noc"
   ]
 }

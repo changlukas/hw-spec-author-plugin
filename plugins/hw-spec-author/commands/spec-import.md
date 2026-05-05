@@ -1,5 +1,5 @@
 ---
-description: Import an existing hardware spec (Markdown/text) and/or RTL source (.sv/.v) and restructure into the OpenTitan-Comportability 6-file layout. Mechanically extracts ports/parameters/registers/FSM from RTL; preserves prose from existing docs. Honest about what could and could not be extracted.
+description: Import an existing hardware spec (Markdown/text) and/or RTL source (.sv/.v) and restructure into the OpenTitan-Comportability 6-file behavioral-block layout. Mechanically extracts ports/parameters/registers/FSM from RTL; preserves prose from existing docs. **Behavioral-block mode only** — for protocol-bfm specs, use /spec-init protocol-bfm instead (BFM brownfield import is a known limitation).
 argument-hint: <input_path> [output_dir]
 allowed-tools: Read, Write, Glob, Grep
 ---
@@ -7,6 +7,14 @@ allowed-tools: Read, Write, Glob, Grep
 You are running `/spec-import`. The user has an existing artifact — a prior spec in any format, RTL source, or both — and wants a draft of the canonical 6-file layout populated from that material.
 
 This command is **not** a writing-from-scratch tool. It is a restructuring + extraction tool. The output is a *draft* that the user shepherds through Phase 2 → Phase 3 → Phase 4 of the hw-spec-author workflow as if it were a freshly initialized spec.
+
+## Known limitation: BFM mode
+
+`/spec-import` produces only `behavioral-block` mode skeletons. BFM-style RTL — pure interface modules, SystemVerilog `interface` + `modport` declarations, modules with no software-visible register file, modules dominated by pure assign/wire-routing logic rather than sequential state — will be force-fitted into the 6-file behavioral layout and produce an unusable draft.
+
+For BFM specs, run `/spec-init <name>` and select `protocol-bfm`, then manually populate `signal_interface.md` from the existing RTL ports. Reverse-extracting protocol rules from `modport` direction signs and SVA assertion bodies is a v2 direction; not in v1 scope.
+
+If `/spec-import` heuristically detects the input is BFM-style (see Step 3), it stops and emits the redirect prompt instead of generating a misshapen skeleton.
 
 ## Steps
 
@@ -27,12 +35,44 @@ This command is **not** a writing-from-scratch tool. It is a restructuring + ext
    - **`.hjson` register definitions** present → use as canonical for `registers.md`
    - **Verilator XML** (`*.xml` with `<module>` elements) → use as structural index instead of native LLM parsing of `.sv`
 
-   Tell the user which mode you detected and what files are in scope before proceeding. Wait for confirmation.
+   ### 3a. BFM-style RTL screening (before proceeding)
+
+   Before generating a behavioral-block skeleton, screen the input RTL for BFM-style indicators. If any of the following are true, stop and emit the redirect prompt:
+
+   - Input contains SystemVerilog `interface` declarations with `modport` definitions and **no** module-level RTL with `always_ff` blocks writing software-visible state.
+   - Input contains modules whose port list is dominated by valid/ready handshake signals (e.g., `*VALID`/`*READY` pairs) AND whose body is dominated by pure `assign` / wire-routing statements rather than sequential logic.
+   - No hjson register file is present AND no `always_ff` block in any input module assigns to a software-visible register array.
+
+   Emit this message and stop:
+
+   ```
+   /spec-import detected BFM-style RTL: <one-line reason — e.g., "interface + modport
+   only, no sequential state assignments to software-visible registers".>
+
+   /spec-import currently produces only behavioral-block mode skeletons. BFM-style
+   RTL force-fitted into that layout produces an unusable draft.
+
+   Recommended action:
+     1. Run /spec-init <name> and select protocol-bfm.
+     2. Manually populate doc/signal_interface.md from the existing RTL ports.
+     3. Iterate the rest of the BFM spec following Phase 2 of the workflow.
+
+   If you believe this detection is a false positive (the RTL is a real
+   behavioral block that happens to look BFM-shaped), re-run with --force to
+   bypass screening: /spec-import --force <input_path> [output_dir]
+   ```
+
+   Detection should err toward false negatives (proceed with import) over false positives (block valid behavioral-block input). When in doubt, proceed and let the user catch the mismatch via the IMPORT_REPORT.
+
+   ### 3b. Confirm detected mode
+
+   Tell the user which input mode you detected and what files are in scope. Wait for confirmation before proceeding.
 
 4. **Build the skeleton**. Create the canonical layout at `<output_dir>` using the templates as scaffolding:
 
 ```
 <output_dir>/
+├── MODE.md
 ├── README.md
 ├── doc/
 │   ├── theory_of_operation.md
@@ -42,6 +82,8 @@ This command is **not** a writing-from-scratch tool. It is a restructuring + ext
 └── dv/
     └── plan.md
 ```
+
+Write `MODE.md` with `mode: behavioral-block` (the only mode `/spec-import` produces; BFM-mode input was rejected at step 3a if detected). Include `created: <today's ISO date>` and `spec-author-plugin-version: <plugin version>` per the MODE.md format defined in SKILL.md.
 
 5. **Extract** based on the detected mode (see sections below). For every extracted item, append a **provenance comment** in the produced markdown:
 

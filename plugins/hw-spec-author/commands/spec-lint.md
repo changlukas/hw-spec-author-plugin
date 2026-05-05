@@ -1,5 +1,5 @@
 ---
-description: Run mechanical consistency checks on a hardware spec. Detects broken cross-references, untracked TODO markers, and Feature-to-Testpoint mapping gaps.
+description: Run mechanical consistency checks on a hardware spec. Mode-aware (LINT-001..007 always; LINT-BFM-001..005 additionally in protocol-bfm mode). Detects broken cross-references, untracked TODO markers, Feature-to-Testpoint mapping gaps, and BFM-mode signal/rule inconsistencies.
 argument-hint: "[path]"
 allowed-tools: Read, Grep, Glob
 ---
@@ -10,14 +10,18 @@ You are running **mechanical lint** over a hardware spec. This complements `/spe
 
 1. **Locate the spec**. Same logic as `/spec-status`. If nothing found, stop.
 
-2. **Inventory** the six canonical files using Glob.
+2. **Detect mode**. Read `<spec_root>/MODE.md` and parse the `mode:` line. If `MODE.md` is absent, default to `behavioral-block` (legacy spec).
 
-3. **Run each lint check** in order. For each violation found, record:
+3. **Inventory** the spec files using Glob, based on mode:
+   - `behavioral-block`: README.md, doc/theory_of_operation.md, doc/programmers_guide.md, doc/interfaces.md, doc/registers.md, dv/plan.md.
+   - `protocol-bfm`: README.md, doc/theory_of_operation.md, doc/signal_interface.md, doc/pin_level_reset.md, doc/protocol_rules.md, doc/channel_handshake.md, doc/transaction_api.md, doc/channel_api.md, doc/active_passive_mode.md, dv/plan.md, plus doc/registers.md if present.
+
+4. **Run each lint check** in order. LINT-001..007 apply in both modes. LINT-BFM-001..005 apply only when `mode == protocol-bfm`. For each violation found, record:
    - File and line number
    - Lint rule violated
    - Suggested fix
 
-4. **Output a structured report** at the end.
+5. **Output a structured report** at the end (header includes Mode line).
 
 ---
 
@@ -140,21 +144,133 @@ Mermaid blocks are inline and self-contained, so do not need this check.
 
 ---
 
+## BFM-mode lint rules
+
+The following rules apply only when `MODE.md` declares `mode: protocol-bfm`. Skip all of them in `behavioral-block` mode.
+
+### LINT-BFM-001: signal_interface ↔ pin_level_reset wire-set parity
+
+Every wire listed in `doc/signal_interface.md` §Wire table must appear in **both** tables of `doc/pin_level_reset.md` (the during-reset table and the after-reset table). Missing wires in either reset table are violations; extra wires in pin_level_reset that don't exist in signal_interface are also violations.
+
+**Scope**: this check applies only to the §Wire table of signal_interface.md. The protocol clock and reset signals (e.g. ACLK / ARESETn / PCLK / PRESETn) live in §Protocol clock and reset and are **excluded** from this check — they are not expected to appear in pin_level_reset.md tables.
+
+Procedure:
+1. Extract the canonical wire-name set `W` from the first column of `signal_interface.md` §Wire table (NOT §Protocol clock and reset).
+2. Extract the wire-name set `R_during` from the during-reset table in `pin_level_reset.md`.
+3. Extract the wire-name set `R_after` from the after-reset table.
+4. Report `W \ R_during` (wires missing from during-reset).
+5. Report `W \ R_after` (wires missing from after-reset).
+6. Report `R_during \ W` and `R_after \ W` (extra wires not in signal_interface §Wire table).
+
+**Violation example:**
+```
+LINT-BFM-001 in pin_level_reset.md
+  Wire WSTRB present in signal_interface.md §Wire table but missing from after-reset table.
+  Suggested fix: add WSTRB row to after-reset table with appropriate value.
+```
+
+### LINT-BFM-002: protocol-rule ID format
+
+Every rule ID in `doc/protocol_rules.md` must match the format `<PROTO>_<ROLE>_<CHANNEL>_<NAME>` (or `<PROTO>_<ROLE>_<NAME>` for protocols without channels — declared by absence of channel grouping in signal_interface.md).
+
+Allowed component values:
+- `<PROTO>`: uppercase identifier matching the **Protocol** declaration at the top of protocol_rules.md (e.g., `AXI4LITE`, `AXI4`, `APB`, `TLUL`).
+- `<ROLE>`: `MST` (master), `SLV` (slave), or `MON` (monitor-only/passive).
+- `<CHANNEL>`: matches a channel from `signal_interface.md` §Channel grouping, or the special tokens `RST` (reset rules), `XCH` (cross-channel rules), `CFG` (configuration-knob rules).
+- `<NAME>`: snake_case, non-empty.
+
+Procedure:
+1. Extract every rule ID from the first column of every rule table in `protocol_rules.md`.
+2. For each ID, verify it matches the format with components from the allowed sets above.
+3. Verify ID uniqueness across all tables (no two rules share an ID).
+
+**Violation example:**
+```
+LINT-BFM-002 in protocol_rules.md:42
+  Rule ID: "axi4lite_slv_aw_awvalid_stable" (lowercase)
+  Problem: PROTO and ROLE must be uppercase.
+  Suggested fix: rename to "AXI4LITE_SLV_AW_AWVALID_STABLE".
+```
+
+### LINT-BFM-003: protocol-rule completeness
+
+Every row in every rule table in `doc/protocol_rules.md` must have a non-empty Condition column AND a non-empty Required behavior column AND a non-empty Severity column AND a non-empty ARM SVA equivalent column.
+
+Severity must be one of: `FAIL`, `RECOMMEND`. Any other value (e.g., `WARN`, `ERROR`) is a violation.
+
+ARM SVA equivalent column must be either: a verified ARM ID, an `(unverified)`-suffixed ARM-pattern ID, or the literal `(none)`. Empty cells are violations.
+
+**Violation example:**
+```
+LINT-BFM-003 in protocol_rules.md:55
+  Rule ID: AXI4LITE_SLV_AW_AWREADY_NO_LATCH
+  Problem: ARM SVA equivalent column is empty.
+  Suggested fix: list the ARM ID, mark "(unverified)", or write "(none)".
+```
+
+### LINT-BFM-004: protocol_rules channel ↔ signal_interface channel grouping
+
+Every channel referenced in `protocol_rules.md` (either as a `<CHANNEL>` field in a rule ID or as a `## <Channel> rules` sub-section heading) must exist in `signal_interface.md` §Channel grouping. Inventing a channel name in protocol_rules that doesn't appear in signal_interface is a violation.
+
+The special tokens `RST`, `XCH`, `CFG` are exempt from this check.
+
+Procedure:
+1. Extract the canonical channel set `C` from `signal_interface.md` §Channel grouping (first column of the table).
+2. Extract every `<CHANNEL>` field from rule IDs in `protocol_rules.md` (third underscore-delimited component).
+3. Extract every `## <name> rules` sub-section heading.
+4. Report any channel referenced in protocol_rules that is not in `C ∪ {RST, XCH, CFG}`.
+
+**Violation example:**
+```
+LINT-BFM-004 in protocol_rules.md:78
+  Channel referenced: "AWA"
+  Problem: signal_interface.md §Channel grouping declares channels {AW, W, B, AR, R}; AWA is not among them.
+  Suggested fix: rename to "AW" (likely typo) or add AWA to signal_interface.md §Channel grouping.
+```
+
+### LINT-BFM-005: Transaction API ↔ Channel API decomposition cross-reference
+
+Every method sub-section in `doc/transaction_api.md` must contain an "Equivalent channel API decomposition" entry. The entry's value must be either:
+- A non-empty step-by-step mapping to channel_api.md calls (e.g., naming `begin_phase_AW`, `assert_valid_AW`, `wait_for_ready_AW`, `end_phase_AW`).
+- The literal `(none — this is Transaction-API-only)` or equivalent explicit "no channel-API decomposition" annotation.
+
+Empty or missing decomposition entries are violations.
+
+Additionally, every channel-API call name referenced in a decomposition must exist as a method in `doc/channel_api.md`.
+
+**Violation example:**
+```
+LINT-BFM-005 in transaction_api.md
+  Method: apply_burst_write
+  Problem: "Equivalent channel API decomposition" sub-section is missing.
+  Suggested fix: add the decomposition listing the channel_api.md method calls in order, or write "(none — this is Transaction-API-only)".
+```
+
+---
+
 ## Output format
 
 ```
 Spec Lint Report
 Spec: <path>
+Mode: <behavioral-block | protocol-bfm>
 Files inspected: <count>
 
 Violations found: <total>
-  LINT-001 (broken xref):           <count>
-  LINT-002 (untracked TODO):        <count>
-  LINT-003 (Feature/Testpoint map): <count>
-  LINT-004 (register casing):       <count>
-  LINT-005 (port casing):           <count>
-  LINT-006 (reset value format):    <count>
-  LINT-007 (missing SVG):           <count>
+  LINT-001 (broken xref):                  <count>
+  LINT-002 (untracked TODO):               <count>
+  LINT-003 (Feature/Testpoint map):        <count>
+  LINT-004 (register casing):              <count>
+  LINT-005 (port casing):                  <count>
+  LINT-006 (reset value format):           <count>
+  LINT-007 (missing SVG):                  <count>
+  LINT-BFM-001 (wire-set parity):          <count> (BFM mode only)
+  LINT-BFM-002 (rule ID format):           <count> (BFM mode only)
+  LINT-BFM-003 (rule completeness):        <count> (BFM mode only)
+  LINT-BFM-004 (channel cross-ref):        <count> (BFM mode only)
+  LINT-BFM-005 (txn↔chan API xref):        <count> (BFM mode only)
+
+(LINT-BFM-* lines are omitted entirely in behavioral-block mode reports.)
 
 ---
 
@@ -165,7 +281,7 @@ Details:
   Problem: target section not found.
   Suggested fix: ...
 
-[LINT-002] theory_of_operation.md:103
+[LINT-BFM-001] pin_level_reset.md
   ...
 
 (continue for each violation)
@@ -173,8 +289,8 @@ Details:
 ---
 
 Summary:
-  - <N> blocking violations (LINT-001, LINT-006 typically): fix before proceeding.
-  - <N> hygiene violations (LINT-002, LINT-004, LINT-005): fix before D1 sign-off.
+  - <N> blocking violations (LINT-001, LINT-006, LINT-BFM-001, LINT-BFM-004 typically): fix before proceeding.
+  - <N> hygiene violations (LINT-002, LINT-004, LINT-005, LINT-BFM-002, LINT-BFM-003, LINT-BFM-005): fix before D1 sign-off.
   - <N> coverage gaps (LINT-003): triage with DV lead.
 ```
 
