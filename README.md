@@ -30,11 +30,13 @@ The framework is silicon-proven for behavioral-block mode: OpenTitan uses it acr
 
 ---
 
-## What's shipped in this marketplace (v0.3.0)
+## What's shipped in this marketplace (v0.3.1)
 
 | Plugin | Description |
 |---|---|
 | [`hw-spec-author`](./plugins/hw-spec-author/) | Authors hardware design specs for digital IP blocks. Two modes: **behavioral-block** (OpenTitan-Comportability 6-file structure) and **protocol-bfm** (9–11-file structure with pin-level rigor, protocol rules, transaction/channel API). D0→D3 stage gates and reader-testing in both modes. |
+
+**v0.3.1** is a documentation-only patch release that aligns `TODO(designer):` format guidance across the generation side (SKILL.md, /spec-init, /spec-import) and the verification side (writing_principles.md §6, /spec-lint LINT-002, /spec-gate `D1.cross.todos_tracked`). The two canonical formats — `(see #N)` for tracked work and `(no issue yet — <reason>)` for sandbox/pending decisions — are now uniformly enforced from generation through gate, eliminating a documented dogfood-rework class. No spec content changes; existing v0.3.0 specs remain valid as long as their TODO markers were already in canonical form.
 
 ---
 

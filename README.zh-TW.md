@@ -30,11 +30,13 @@
 
 ---
 
-## 此 marketplace 內含什麼（v0.3.0）
+## 此 marketplace 內含什麼（v0.3.1）
 
 | Plugin | 描述 |
 |---|---|
 | [`hw-spec-author`](./plugins/hw-spec-author/) | 為數位 IP 撰寫硬體設計規格書。兩種 mode：**behavioral-block**（OpenTitan-Comportability 風格 6-file 結構）與 **protocol-bfm**（9–11 file 結構，含 pin 級嚴謹度、protocol rules、transaction/channel API）。兩種 mode 都有 D0→D3 stage gates 與 reader testing。 |
+
+**v0.3.1** 是 docs-only patch release，把 `TODO(designer):` format 規範在生成端（SKILL.md、/spec-init、/spec-import）與驗證端（writing_principles.md §6、/spec-lint LINT-002、/spec-gate `D1.cross.todos_tracked`）統一對齊。兩個 canonical 格式 — `(see #N)`（有 issue tracker）與 `(no issue yet — <reason>)`（sandbox / pending decision）— 從生成到 gate 一致 enforce，消除一類 dogfood 必返工的問題。Spec 內容無變更；既有 v0.3.0 specs 只要 TODO 已是 canonical 形式即繼續有效。
 
 ---
 

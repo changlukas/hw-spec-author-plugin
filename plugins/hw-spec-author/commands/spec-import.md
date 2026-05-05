@@ -21,6 +21,7 @@ If `/spec-import` heuristically detects the input is BFM-style (see Step 3), it 
 1. **Read the skill and the extraction reference**:
    - `${CLAUDE_PLUGIN_ROOT}/skills/hw-spec-author/SKILL.md` for the workflow.
    - `${CLAUDE_PLUGIN_ROOT}/skills/hw-spec-author/references/process/rtl_extraction.md` for what is and is not extractable from RTL.
+   - `${CLAUDE_PLUGIN_ROOT}/skills/hw-spec-author/references/process/writing_principles.md` §6 for the canonical `TODO(designer):` format. Every `TODO(designer):` emitted by this command MUST end in `(see #N)` or `(no issue yet — <reason>)` per §6 — free-form rationale (e.g. `confirm — assumed default`) is rejected by `/spec-lint` LINT-002 and `/spec-gate` `D1.cross.todos_tracked` and forces rework at gate time. Default to `(no issue yet — <reason>)` when no issue tracker is supplied; the reason can be as short as `(no issue yet — extraction placeholder)` for mechanical-extraction gaps.
    - The 6 templates under `${CLAUDE_PLUGIN_ROOT}/skills/hw-spec-author/references/templates/` for the target structure.
 
 2. **Parse the invocation** `/spec-import <input_path> [output_dir]`:

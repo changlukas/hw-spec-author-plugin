@@ -127,7 +127,7 @@ The Capture interview branches by mode. Ask the IP-class question first; subsequ
 - Any optional protocol features in/out of scope (exclusive access, ID-bearing channels, low-power handshake, narrow transfers, etc.)
 - Configuration knobs the testbench will need (response delay, outstanding limit, fault injection types)
 
-If the user has prior art (a draft, a similar IP's spec, scribbled notes), ask for it before drafting. **Do not hallucinate features.** If a detail isn't given, leave a `TODO(designer):` placeholder rather than invent.
+If the user has prior art (a draft, a similar IP's spec, scribbled notes), ask for it before drafting. **Do not hallucinate features.** If a detail isn't given, leave a `TODO(designer):` placeholder rather than invent — the placeholder MUST use the canonical format `TODO(designer): <text> (no issue yet — <reason>)` (or `(see #N)` if an issue is tracked) per `references/process/writing_principles.md` §6. Free-form trailing rationale (`confirm — ...`, `awaiting numbers.`) is rejected by `/spec-lint` LINT-002 and `/spec-gate` `D1.cross.todos_tracked`.
 
 After the interview, write `MODE.md` to the spec root recording the chosen mode, then generate the skeleton files. For `behavioral-block` use the templates in `references/templates/`; for `protocol-bfm` use `references/templates/bfm/`. Read each template before generating its corresponding file.
 

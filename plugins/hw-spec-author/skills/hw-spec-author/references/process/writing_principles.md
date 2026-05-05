@@ -62,18 +62,25 @@ When a fact is in another section of the spec, link to it. Don't restate.
 
 ## 6. Errata and TBDs are tagged, never silent
 
-A `TODO(designer):` is acceptable in a draft. A bare `TBD` is not. Every unresolved item must have:
+A `TODO(designer):` is acceptable in a draft. A bare `TBD` is not. Every `TODO(designer):` MUST use exactly one of two canonical formats:
 
-- A short description of what's missing.
-- An owner (the designer, or specific name if delegated).
-- An issue link (or "no issue yet" with a reason).
+- `TODO(designer): <text> (see #N)` — for tracked work with an issue-tracker link.
+- `TODO(designer): <text> (no issue yet — <reason>)` — for sandbox specs, pending design decisions, future spec revisions, or any case where no issue tracker is in scope.
+
+Both formats end with the parenthesised tracking annotation. Free-form rationale (e.g. trailing dash + reason without parentheses) does not satisfy this rule, even when the rationale is informative — `/spec-lint` LINT-002 and `/spec-gate` `D1.cross.todos_tracked` both parse the parenthesised form literally.
 
 Examples:
 
-- ✅ `TODO(designer): performance commitment for back-to-back reads. Awaiting synthesis numbers. See issue #42.`
+- ✅ `TODO(designer): performance commitment for back-to-back reads (see #42).`
+- ✅ `TODO(designer): cross-link to router-spec ordering once router DV publishes (no issue yet — router spec under separate ownership).`
+- ✅ `TODO(designer): formula for CDC FIFO depth (no issue yet — current 16-entry default is conservative for ratios in [0.1, 10]; formula deferred until ratio range is locked).`
 - ✅ `IMPLEMENTATION-DEFINED: order of IRQ servicing when two sources fire same cycle. Software treats as undefined.`
+- ❌ `TODO(designer): confirm — performance assumed 1-cycle.`  (free-form rationale; not parenthesised)
+- ❌ `TODO(designer): performance commitment for back-to-back reads. Awaiting synthesis numbers.`  (no issue link and no `(no issue yet — …)` annotation)
 - ❌ `TBD`
 - ❌ "More details to follow."
+
+When generating a spec from scratch (`/spec-init`), from existing material (`/spec-import`), or while iterating in conversation, prefer the `(no issue yet — <reason>)` form unless the user has already committed to an issue tracker and supplied an issue number.
 
 ## 7. Prose tone
 
