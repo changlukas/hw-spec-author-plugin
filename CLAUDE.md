@@ -101,6 +101,137 @@ There is no `npm test`, no linter, no formatter. Plugin "testing" is dogfooding:
 - **Cross-reference check** — `/spec-lint` checks references inside user specs (LINT-001 cross-refs, LINT-BFM-004 channel cross-refs, etc.), but the *plugin's own* docs (SKILL.md, READMEs, commands) also cross-reference each other. Run `git grep` for moved file paths after any reorganization.
 - **Mode-conditional consistency** — when adding a new BFM template file or a new `D1.bfm.*` anchor, also update SKILL.md template tables, spec-init.md generation logic, spec-status.md / spec-gate.md / spec-lint.md mode-aware steps, and both READMEs.
 
+## Working protocol — mechanical verification over judgment
+
+Recurring failure mode in this repo (observed and corrected across the noc-sim NI BFM dogfood waves A1–A4): I add unrequested complexity, miscount, or assert "all X cleaned up" without verifying. Pure-prompt judgment is unreliable for these. **Push every verifiable claim to a tool.** This is the highest-leverage rule in this file.
+
+### Before any edit (delta-from-plan rule)
+
+Before touching files, write a bulleted list of every detail I will add that is NOT in the user's explicit approval. Empty list → proceed. Non-empty list → stop and ask per-item approval. Do not batch-approve.
+
+Examples of "details that count" as unrequested additions and require explicit approval:
+
+- Reserved-encoding forward-compat clauses (e.g., "encoding 3 is Reserved; BFM accepts as Hybrid").
+- Debug-only acceptance clauses (e.g., "mode=2 SHOULD be avoided in production but no SLVERR").
+- CDC mechanism choices (e.g., "req/ack handshake instead of 2FF").
+- Splitting one register into CTRL/STATUS pair where the user wrote one.
+- Severity bumps on pre-existing rules (RECOMMEND→FAIL or vice versa).
+- New race-semantic rules / liveness rules / accuracy contracts.
+- Backwards-compatibility shims, deprecation aliases, parameter range expansion.
+
+A4's VC_ARB_MODE is the canonical violation: the plan said "runtime selection of arbitration policy" (one line), I shipped CDC handshake + Reserved=3 forward-compat + debug-only acceptance + dual-arbiter binding (4 unrequested mechanisms), required mid-wave revert.
+
+### Default to minimum sufficient design
+
+When in doubt about adding a clause / mechanism / forward-compat / handling-the-edge-case, DON'T. Ship the smaller version. Review-then-extend is cheaper than ship-then-revert. If the user wants the addition, they will pull. Do not push.
+
+### Single-file batching
+
+At most 2 file edits per response unless the user explicitly asks for more. After each batch:
+
+- Sync to dogfood mirror if applicable.
+- Run `/spec-lint` (or relevant mechanical check).
+- Surface the diff or the lint result.
+- Then stop and wait.
+
+This catches contradictions at one round-trip cost, vs. cascading errors across 6 files.
+
+### Numeric and completeness claims must cite tool output
+
+Never write a numeric claim or "all X done" claim from memory. Always cite a canonical command and quote its output literally. If tool output contradicts my mental model, trust the tool and update the claim.
+
+| Claim type | Wrong (prompt-only) | Right (tool-backed) |
+|---|---|---|
+| Register count | "6 new registers" | `grep '^\| 0x13' registers.md \| wc -l` → 6 |
+| Rule count | "~135 rules" | `grep -c '^\| \(NI\|AXI4\|NOC\|AXI4LITE\)_' protocol_rules.md` → 141 |
+| Cleanup completeness | "all VC_ARB_MODE removed" | `grep -r 'VC_ARB_MODE' spec/` → 0 hits |
+| Cross-ref target exists | "section exists in target file" | `grep -i '^####* VC scheduling' theory_of_operation.md` → match found |
+| Inheriting a prior count | "per A3 claim ~135" | re-verify with canonical grep before re-citing; A3 was wrong by 6 |
+| Markers / TODOs cleared | "no markers in spec" | `grep -rn 'Reviewer assumption\|TODO(designer)' doc/ dv/` → 0 hits |
+
+### Quote, do not paraphrase
+
+When claiming "the spec says X", cite as `<file>:<line> — "<verbatim quote>"`. Paraphrase loses precision and is the source of self-contradictions. A4 produced two through paraphrase: (a) `EXCLUSIVE_MONITOR_CTRL` access "WO" but text said "reads return 0" (strict WO conventionally means reads error), (b) CDC rule "FIFO or 2FF" but new VC_ARB_MODE rule used "req/ack handshake" — neither side referenced the other verbatim.
+
+### Why these rules live in CLAUDE.md
+
+CLAUDE.md is auto-loaded into every session at start and stays in context throughout. Rules written here propagate to every future session without re-training. Memory feedback files (`memory/feedback_*.md`) supplement for narrow patterns; CLAUDE.md carries the cross-cutting working-protocol rules that apply to every wave of every project in this repo.
+
+If a rule above turns out to be wrong or counter-productive in practice, edit it here. The goal is mechanical reliability, not rigid compliance.
+
+## Spec writing style — sound like an IP vendor, not AI
+
+The user has flagged that my spec prose is often hard to parse and "feels AI-generated". The reviewer is the user. If they can't follow the text, they can't sign off — content correctness alone is insufficient. **Match the style of AMD pg313, ARM AMBA AXI, and Intel architecture references**: terse, direct, structurally heavy, one idea per sentence.
+
+This section applies to:
+
+- Spec content in `dogfood/<name>/` and any user-spec generated by the plugin (`registers.md`, `theory_of_operation.md`, `protocol_rules.md`, `dv/plan.md`, etc.).
+- Plugin source artifacts (templates, command frontmatter, SKILL.md, READMEs) — same style, for consistency.
+
+This section does NOT apply to chat-style conversational responses or `NEXT_SESSION_*.md` handoff notes (those can be more discursive).
+
+### Sentence-level rules
+
+- **One idea per sentence.** 15–25 words typical. Sentences over 35 words almost always need splitting.
+- **Concrete subject + active verb + direct object.** "The NMU drops the flit." Not "The flit is dropped" or "Flit dropping is performed by the NMU".
+- **Name actual components and signals.** "NMU's RoB allocator" not "the implementation". `axi_awready_o` not "the ready signal".
+- **Replace pronouns with named entities** when ambiguous. "It / this / these" without an unambiguous antecedent within ~8 words → name the thing.
+
+### Banned AI tells
+
+These verbs and modifiers add no information and pattern-match as machine-generated. Replace with the real verb or omit.
+
+- **Empty verbs**: leverages, ensures, facilitates, enables, provides, implements (when it just means "does"), utilises, allows, supports. Use the actual verb — `checks`, `drives`, `asserts`, `drops`, `computes`, `routes`, `forwards`.
+- **Empty modifiers**: robust, scalable, comprehensive, holistic, seamless, efficient, optimal — claims without measurable content. Either give the number or omit.
+- **Throat-clearing**: "It should be noted that", "Importantly,", "Critically,", "It is worth mentioning". Just say the thing.
+- **Hedges**: "may potentially", "could possibly", "tends to", "generally speaking". One hedge per sentence max. Prefer "may" / "can" / "typically" alone.
+- **Nominalisation**: "performs the calculation of" → `calculates`; "is responsible for processing" → `processes`; "the implementation of the algorithm" → "the algorithm".
+- **Filler phrases**: "in order to" → "to"; "due to the fact that" → "because"; "at this point in time" → "now"; "for the purpose of" → "for".
+- **Tricolons (rule of three)**: "robust, scalable, and efficient" — pick one or omit. Three-item lists belong in tables, not adjective stacks.
+
+### Structural rules
+
+- **Lead with the entity, not the precondition.** Wrong: "When `NUM_VC > 1`, the NMU has per-VC FIFOs that..." Right: "NMU has `NUM_VC` per-VC injection FIFOs (active when `NUM_VC > 1`)."
+- **Tables for 3+ parallel items.** Three modes? Three error classes? Three reset domains? Use a table, not a bullet list of compound sentences.
+- **Numbered procedures for ordered steps.** "Software writes 1, then polls until idle, then..." → numbered 1./2./3. list.
+- **`Note:` callouts for asides.** Main text stays on the contract. Tangential context goes to a "**Note:**" line below.
+- **No meta-commentary.** Don't write "as discussed in the previous section" or "this section covers". The reader sees the section heading.
+- **No semicolons in narrative prose** (per `memory/feedback_no_semicolons.md`). Split into sentences or use bullets. Semicolons are tolerable inside dense table cells where space is tight.
+
+### Concrete contrast examples
+
+**Wrong (AI-style)**:
+> Software can request NMU-side quiesce before runtime reconfiguration that requires no in-flight transactions on the NMU path (e.g., software view of routing-table reconfig coordinated through CSR).
+
+**Right (IP-vendor style)**:
+> Software requests quiesce before any reconfiguration that must observe a fully-drained NMU. The typical use case is a routing-table update coordinated through CSR.
+
+---
+
+**Wrong**:
+> The arbiter is responsible for selecting one VC per cycle for output, ensuring fairness across request and response subsets while maintaining wormhole-lock semantics.
+
+**Right**:
+> The arbiter picks one VC per cycle. It alternates between request and response subsets. Wormhole-lock holds per `NOC_FLIT_VC_HARDLOCK`.
+
+---
+
+**Wrong**:
+> When the `EXCLUSIVE_MONITOR_CTRL.clear_all` bit is written with a value of 1, this triggers the invalidation of all currently pending NSU Exclusive Monitor entries on the next available `aclk_i` edge.
+
+**Right**:
+> Writing 1 to `EXCLUSIVE_MONITOR_CTRL.clear_all` invalidates every pending NSU Exclusive Monitor entry on the next `aclk_i` edge.
+
+### Reference style
+
+When in doubt, model the prose on:
+
+- **AMD pg313 NoC Programmer's Guide** — short paragraphs, tables-heavy, named-component subjects.
+- **ARM IHI 0022 (AXI4 protocol spec)** — numbered steps, formal but readable. The rule-row format in this project's `protocol_rules.md` is descended from ARM's protocol-checker tables.
+- **Intel architecture references / datasheets** — register-field tables, one-sentence behavior summaries.
+
+The test for whether a paragraph passes: a hardware engineer who skims it once should be able to repeat back the contract. If they have to re-read, the sentence is wrong.
+
 ## When making changes
 
 - **Editing templates** (`references/templates/` and `references/templates/bfm/`): templates encode audience-segregation rules, section structure, and lint-rule contracts. Adding a section means updating both the template *and* the matching `D1.*` anchors in `stage_gates.md` so `/spec-gate` will check it. For BFM-mode templates, also update LINT-BFM-* rules in `commands/spec-lint.md` if structural validation is needed.
