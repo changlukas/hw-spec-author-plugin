@@ -123,3 +123,50 @@ If the user gives a rough estimate, mark it: `Pipeline depth: 3 cycles (estimate
 A worked example (use case in programmer's guide, mini block diagram, sample register encoding) is worth more than three paragraphs of abstract description. But examples must be correct and consistent with the rest of the spec. An incorrect example is worse than no example because it teaches the wrong thing.
 
 Cross-check every example against the relevant sections before submitting.
+
+## 11. Default to minimum sufficient
+
+When in doubt about adding a clause, mechanism, or edge-case handler the user did not explicitly request, omit it. The cost of a missing clause is one round-trip to add it. The cost of an unrequested clause is much higher: it ships, gets verified, gets locked in, and removing it later is expensive.
+
+Before adding any unrequested feature, write one line: "Adding this because <reason>." If the reason is weak, drop the addition.
+
+Common offenders to watch for:
+
+- Reserved-encoding forward-compat clauses ("encoding 3 is Reserved; BFM accepts as Hybrid")
+- Debug-only acceptance paths ("mode=2 SHOULD be avoided in production but no SLVERR")
+- CDC mechanism choices the user did not specify (req/ack vs 2FF vs gray-counter)
+- Splitting one register into CTRL/STATUS pair where the user wrote one
+- Severity bumps (RECOMMEND ↔ FAIL) on existing rules
+- Backwards-compatibility shims for unreleased revisions
+- Race-semantic and liveness clauses beyond what the user asked for
+
+Counter-pattern: when the spec genuinely needs a constraint to be unambiguous (e.g., "what happens on AXI ID collision?"), state it. The rule is no *unrequested complexity*, not *no rigor*.
+
+Worked example and rationale: see `plan/DOGFOOD_OBSERVATIONS_A5.md` §1.
+
+## 12. No semicolons in narrative prose
+
+Avoid semicolons (`;`) in spec narrative prose. Split into two sentences or use a bullet list.
+
+- ✅ "The arbiter picks one VC per cycle. Wormhole-lock holds per `NOC_FLIT_VC_HARDLOCK`."
+- ❌ "The arbiter picks one VC per cycle; wormhole-lock holds per `NOC_FLIT_VC_HARDLOCK`."
+
+Reason: spec readers skim. Two short sentences scan more easily than one compound sentence chained by a semicolon.
+
+Exception: semicolons inside dense table cells (where line breaks would distort the layout). Code blocks (SystemVerilog, C++, etc.) unaffected.
+
+## 13. External attribution requires verbatim citation
+
+When the spec attributes a design choice to an external standard (AMD pg313, ARM AMBA AXI, RISC-V, FlooNoC, etc.), include a verbatim quote with section reference. Do not summarize what the standard "essentially says" — paraphrases drift across multi-round editing.
+
+Format:
+
+> *"<verbatim quote from external source>"* — <source name> §<section>
+
+Example:
+
+> *"The NPP packet (DST ID + LAST) field is also protected by 1-bit even parity."* — AMD pg313 §Parity
+
+Failure mode this prevents: across multi-round editing, "AMD says X" drifts to "AMD-aligned X" to "industry-standard X". Eventually X no longer matches the source. Verbatim quotes are the mechanical safeguard.
+
+Worked example: see `plan/DOGFOOD_OBSERVATIONS_A5.md` §4.
