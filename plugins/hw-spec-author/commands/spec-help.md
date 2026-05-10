@@ -35,11 +35,17 @@ Workflow (4 phases, gated D0 → D3):
                               → channel_api → active_passive_mode → dv/plan
     Trigger: natural conversation (just describe what to fill in)
 
-  Phase 3 — Reader Test (D1 sign-off)
+  Phase 3 — Ambiguity Detection (D1 sign-off)
     Goal: catch ambiguity before implementation starts.
-    Bank: behavioral-block → reader_test.md
-          protocol-bfm     → bfm_reader_test_bank.md
-    Trigger: /spec-review
+    Two complementary protocols:
+      Reader test:        /spec-review
+                          Bank: behavioral-block → reader_test.md
+                                protocol-bfm     → bfm_reader_test_bank.md
+      Implementer review: /spec-implementer-review (mandatory at D1 when
+                          mode == protocol-bfm AND has-rtl-counterpart == yes)
+                          Spawns paradigm-paired reviewers (default c-bfm + rtl)
+                          to surface bit-equivalence ambiguities reader test
+                          cannot detect.
 
   Phase 4 — Stage Gate (D1 → D2 → D3)
     Goal: verify mode-conditional checklist completeness at each transition.
@@ -77,6 +83,12 @@ Available commands:
   /spec-review [path]
       Run reader test (via spec-reader subagent for true isolation).
       8–12 ambiguity-targeting questions drawn from the mode-matched bank.
+
+  /spec-implementer-review [path] [--paradigms <p1>,<p2>,...]
+      Run multi-agent paradigm-paired review (via implementer-reviewer
+      subagent). v1 supports protocol-bfm + has-rtl-counterpart=yes only.
+      Default 2 paradigms (c-bfm + rtl); ~5–10 min wall, 2N agent dispatches.
+      Produces IMPLEMENTER_REVIEW_LOG.md.
 
   /spec-lint [path]
       Mechanical consistency check (mode-aware). LINT-001..007 always;

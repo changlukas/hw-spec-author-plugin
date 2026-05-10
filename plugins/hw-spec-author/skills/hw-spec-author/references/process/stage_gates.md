@@ -123,6 +123,7 @@ Some sub-sections below are tagged `**Applies when:** <mode>` at the section hea
 ### Cross-document
 - [ ] (id: D1.cross.reader_test) **Applies when:** `mode == behavioral-block`. Reader test using `reader_test.md` bank has been run with at least 8 questions; gaps fixed.
 - [ ] (id: D1.cross.bfm_reader_test) **Applies when:** `mode == protocol-bfm`. Reader test using `bfm_reader_test_bank.md` has been run with at least 8 questions covering all 8 universal-BFM categories applicable to the protocol; gaps fixed.
+- [ ] (id: D1.cross.implementer_review) **Applies when:** `mode == protocol-bfm` AND `has-rtl-counterpart == yes`. Implementer review using `/spec-implementer-review` has been run with at least 2 paradigm-paired reviewers (default `c-bfm + rtl`; user-overridable via `--paradigms`). Converged ambiguity list either resolved in spec or recorded in `WAIVERS.md`. Output stored at `<spec_root>/IMPLEMENTER_REVIEW_LOG.md`.
 - [ ] (id: D1.cross.todos_tracked) No `TODO(designer):` markers without a canonical tracking annotation. Acceptable formats per `writing_principles.md` §6: `TODO(designer): <text> (see #N)` for tracked work, or `TODO(designer): <text> (no issue yet — <reason>)` for sandbox specs / pending design decisions / future spec revisions. Free-form trailing rationale (e.g. `confirm — <text>`, `awaiting numbers.`) does not satisfy this item.
 
 **What can stay TBD at D1:** exact test counts, final coverage numbers, post-synthesis timing analysis, exhaustive security countermeasure (sec_cm) list (if security-critical), final IP version number.

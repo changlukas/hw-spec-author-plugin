@@ -235,6 +235,8 @@ references/
     ├── reader_test.md                      # behavioral-block question bank
     ├── bfm_reader_test_bank.md             # protocol-bfm question bank
     ├── writing_principles.md
+    ├── slide_style.md                      # presentation deck style (optional, for SLIDES.md)
+    ├── implementer_review.md               # multi-agent paradigm-paired review (protocol-bfm + has-rtl-counterpart=yes)
     └── rtl_extraction.md
 ```
 
@@ -243,6 +245,8 @@ Read templates as needed when writing the corresponding section. Read process fi
 - `reader_test.md` — before Phase 3 in `behavioral-block` mode.
 - `bfm_reader_test_bank.md` — before Phase 3 in `protocol-bfm` mode.
 - `writing_principles.md` — at the start of every writing session, and when reviewing.
+- `slide_style.md` — when drafting a presentation deck (`SLIDES.md`) from a finished spec.
+- `implementer_review.md` — at D1 sign-off in `protocol-bfm + has-rtl-counterpart=yes` mode, when running `/spec-implementer-review`.
 - `rtl_extraction.md` — only when running `/spec-import` against RTL source. (Behavioral-block only.)
 
 ## Worked examples
@@ -279,6 +283,7 @@ When this skill is installed as part of the `hw-spec-author` Claude Code plugin,
 | `/spec-import <input_path> [output_dir]` | Phase 1 (brownfield, behavioral-block only) | Import existing doc / RTL / hjson and restructure into the 6-file layout. Produces `IMPORT_REPORT.md` documenting provenance and conflicts. See `references/process/rtl_extraction.md`. **BFM mode not supported** — use `/spec-init` instead. |
 | `/spec-status [path]` | Phase 2 | Reads `MODE.md`; reports current D-stage against the mode-appropriate checklist, lists open items |
 | `/spec-review [path]` | Phase 3 | Reads `MODE.md`; runs reader test via the `spec-reader` subagent using the matching question bank; produces ambiguity-gap report |
+| `/spec-implementer-review [path] [--paradigms ...]` | Phase 3, D1 sign-off | Reads `MODE.md`; runs multi-agent paradigm-paired review via `implementer-reviewer` subagent (default 2 paradigms: c-bfm + rtl). v1 supports `protocol-bfm + has-rtl-counterpart=yes` only. Produces `IMPLEMENTER_REVIEW_LOG.md` with converged ambiguity list. Cost ~2N agent dispatches, ~5–10 min wall. |
 | `/spec-lint [path]` | any | Reads `MODE.md`; runs LINT-001..007 always plus LINT-BFM-001..005 in BFM mode |
 | `/spec-gate <D1\|D2\|D3>` | Phase 4 | Reads `MODE.md`; evaluates mode-conditional checklist items; persistent waivers in `WAIVERS.md` |
 | `/spec-help` | any | Mode-aware workflow card, current state, suggested next command |
@@ -287,7 +292,12 @@ When this skill is installed as part of the `hw-spec-author` Claude Code plugin,
 
 Commands are explicit invocations; the skill itself activates ambiently from natural language. Both paths reach the same underlying logic — commands just give the user a predictable handle when they want one.
 
-The plugin also provides a `spec-reader` subagent (under `agents/`) which is invoked by `/spec-review` via the Task tool. The subagent is given only `Read`, `Grep`, `Glob` access — no writes, no shell — and runs in fresh context so it cannot draw on authoring history when answering reader-test questions. This isolation is what makes the reader test rigorous.
+The plugin also provides two subagents (under `agents/`):
+
+- `spec-reader` — invoked by `/spec-review` via the Task tool. Answers single reader-test questions from spec text only. Tools: `Read`, `Grep`, `Glob`.
+- `implementer-reviewer` — invoked by `/spec-implementer-review`. Takes a paradigm role (RTL / c-bfm / uvm-bfm / systemc-tlm / custom) and produces an implementation plan + ambiguity list (Round 1) or peer-reviews another paradigm's plan (Round 2). Tools: `Read`, `Grep`, `Glob`.
+
+Both subagents have no writes, no shell, run in fresh context so they cannot draw on authoring history. This isolation is what makes both protocols rigorous.
 
 ## Diagram formats
 

@@ -430,9 +430,9 @@ For the full rationale, read [`SKILL.md`](./plugins/hw-spec-author/skills/hw-spe
 
 ## Components shipped
 
-- 1 skill: `hw-spec-author` (workflow engine + 13 templates + 5 process docs)
-- 1 subagent: `spec-reader` (isolated-context reader for the reader test)
-- 7 slash commands: `/spec-init`, `/spec-import`, `/spec-status`, `/spec-review`, `/spec-lint`, `/spec-gate`, `/spec-help`
+- 1 skill: `hw-spec-author` (workflow engine + 13 templates + 7 process docs)
+- 2 subagents: `spec-reader` (isolated-context reader for the reader test), `implementer-reviewer` (paradigm-paired implementer reviewer for `/spec-implementer-review`)
+- 8 slash commands: `/spec-init`, `/spec-import`, `/spec-status`, `/spec-review`, `/spec-implementer-review`, `/spec-lint`, `/spec-gate`, `/spec-help`
 - 3 worked examples: `wctmr` (behavioral-block), `axi_lite_slave_bfm` (protocol-bfm with RTL counterpart), `apb_slave_bfm` (protocol-bfm portability test on channel-less protocol)
 
 ---
@@ -449,12 +449,14 @@ hw-spec-author-plugin/
 │       │   └── plugin.json
 │       ├── README.md
 │       ├── agents/
-│       │   └── spec-reader.md
+│       │   ├── spec-reader.md
+│       │   └── implementer-reviewer.md
 │       ├── commands/
 │       │   ├── spec-init.md
 │       │   ├── spec-import.md
 │       │   ├── spec-status.md
 │       │   ├── spec-review.md
+│       │   ├── spec-implementer-review.md
 │       │   ├── spec-lint.md
 │       │   ├── spec-gate.md
 │       │   └── spec-help.md
@@ -471,6 +473,8 @@ hw-spec-author-plugin/
 │                   │   ├── reader_test.md           # behavioral-block question bank
 │                   │   ├── bfm_reader_test_bank.md  # protocol-bfm question bank
 │                   │   ├── writing_principles.md
+│                   │   ├── slide_style.md           # presentation deck style (optional)
+│                   │   ├── implementer_review.md    # multi-agent paradigm-paired review (BFM + RTL)
 │                   │   └── rtl_extraction.md
 │                   └── templates/
 │                       ├── 01_summary.md            # behavioral-block templates

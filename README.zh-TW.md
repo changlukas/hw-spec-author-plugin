@@ -430,9 +430,9 @@ Plugin 圍繞四個性質，每個 gate 都檢：
 
 ## 內含元件
 
-- 1 個 skill：`hw-spec-author`（workflow engine + 13 個 templates + 5 個 process docs）
-- 1 個 subagent：`spec-reader`（隔離 context 的 reader 給 reader test 用）
-- 7 個 slash commands：`/spec-init`、`/spec-import`、`/spec-status`、`/spec-review`、`/spec-lint`、`/spec-gate`、`/spec-help`
+- 1 個 skill：`hw-spec-author`（workflow engine + 13 個 templates + 7 個 process docs）
+- 2 個 subagents：`spec-reader`（隔離 context 的 reader 給 reader test 用）、`implementer-reviewer`（paradigm-paired implementer reviewer 給 `/spec-implementer-review` 用）
+- 8 個 slash commands：`/spec-init`、`/spec-import`、`/spec-status`、`/spec-review`、`/spec-implementer-review`、`/spec-lint`、`/spec-gate`、`/spec-help`
 - 3 個 worked examples：`wctmr`（behavioral-block）、`axi_lite_slave_bfm`（protocol-bfm with RTL counterpart）、`apb_slave_bfm`（protocol-bfm 對無 channel 協定的可攜性測試）
 
 ---
@@ -449,12 +449,14 @@ hw-spec-author-plugin/
 │       │   └── plugin.json
 │       ├── README.md
 │       ├── agents/
-│       │   └── spec-reader.md
+│       │   ├── spec-reader.md
+│       │   └── implementer-reviewer.md
 │       ├── commands/
 │       │   ├── spec-init.md
 │       │   ├── spec-import.md
 │       │   ├── spec-status.md
 │       │   ├── spec-review.md
+│       │   ├── spec-implementer-review.md
 │       │   ├── spec-lint.md
 │       │   ├── spec-gate.md
 │       │   └── spec-help.md
@@ -471,6 +473,8 @@ hw-spec-author-plugin/
 │                   │   ├── reader_test.md           # behavioral-block 題庫
 │                   │   ├── bfm_reader_test_bank.md  # protocol-bfm 題庫
 │                   │   ├── writing_principles.md
+│                   │   ├── slide_style.md           # 簡報風格（選用）
+│                   │   ├── implementer_review.md    # 多 agent paradigm-paired review（BFM + RTL）
 │                   │   └── rtl_extraction.md
 │                   └── templates/
 │                       ├── 01_summary.md            # behavioral-block templates
