@@ -1,6 +1,6 @@
-# Dogfood Observations from noc-sim NI BFM (waves A1–A5)
+# Dogfood Observations from noc-sim NI BFM (waves A1–A6)
 
-This file catalogues plugin failure modes observed while authoring the noc-sim NI BFM spec across waves A1–A5, with each observation matched to a concrete plugin disposition.
+This file catalogues plugin failure modes observed while authoring the noc-sim NI BFM spec across waves A1–A6, with each observation matched to a concrete plugin disposition.
 
 This is the *backflow* document — observations originally captured in the dogfood working memory (`memory/project_plugin_improvement_observations.md`) consolidated here as plugin design intent. Where an observation already produced a plugin source change, the entry cites the file and section. Where it remains deferred, the entry notes scope and triggering wave.
 
@@ -74,6 +74,104 @@ Items missed in mid-wave:
 
 **Possible follow-on**: LINT-009 — vocabulary scanner over both spec content and plugin source files (templates, SKILL.md, command frontmatter). Deferred.
 
+## 9. Industry-vocab residue not detected (A6 wave — concrete evidence for §2)
+
+**Symptom**: Internal-coined labels persist in spec source across multiple files without lint detection. A6 wave web research (AMD PG313 / ARM IHI 0022 H.b+ / FlooNoC arXiv papers / Arteris FlexNoC docs / Dally & Towles canon) surfaced 4 internal terms as non-canonical industry vocabulary. The terms accumulated across A1–A5 waves; no existing lint rule caught them.
+
+Empirical evidence in `spec/ni/doc/` (grep'd 2026-05-16 post-A6 wave):
+
+| Label | Files affected |
+|---|---|
+| `(B)-philosophy` | 5 (`02_flit.md`, `protocol_rules.md`, `signal_interface.md`, `theory_of_operation.md`, `transaction_api.md`) |
+| `single-chimney` | 2 (`02_flit.md`, `signal_interface.md`) |
+| `wormhole-locked` | 4 (`channel_handshake.md`, `protocol_rules.md`, `theory_of_operation.md`, `transaction_api.md`) |
+| `MetaBuffer` | 4 (`channel_handshake.md`, `protocol_rules.md`, `signal_interface.md`, `theory_of_operation.md`) |
+
+13 file-occurrences total. Industry-canonical replacements per A6 research:
+
+- `(B)-philosophy` → `log-and-forward fabric error reporting` (AMD-PG313-aligned)
+- `single-chimney` → `one NMU + NSU per tile` (industry-neutral; FlooNoC term retained only in FlooNoC-cited context)
+- `wormhole-locked` → `VC held for write-burst duration (wormhole)`
+- `MetaBuffer` → `transaction context buffer` (FlooNoC spelling retained only with `floo_meta_buffer.sv` attribution)
+
+**Root cause**: spec authoring tooling enforces local consistency (LINT-001 cross-refs, LINT-004/005 casing) but not industry-vocab alignment. Internal coinage normalises during design conversations; once landed in spec source no mechanical check questions it.
+
+**Disposition**: DEFERRED. Strengthens §2 deferred LINT-008.
+
+**Candidate plugin change**:
+
+- New process doc `references/process/industry_vocabulary.md` — vendor-canonical terms table with provenance (AMD PG313 / ARM IHI 0022 H.b+ / FlooNoC / Arteris / Dally), plus known internal-coinage list with recommended replacements.
+- LINT-009 (vocab residue): scan spec source for known internal-coinage labels. Allow Speaker-notes / explicit-provenance context (e.g., `*"FlooNoC `floo_meta_buffer.sv` style"*` references retain the label). Body-text occurrences flagged.
+- Cross-ref §2 — same lint infrastructure handles both rename-drift and vocab-canonicalisation.
+
+## 10. Testpoint ID sequence gap undetected by LINT-003
+
+**Symptom**: A6 wave found `dv/plan.md` had TP IDs ranging TP1..TP51 but TP45 was absent (`grep -c "TP45" dv/plan.md` → 0). Real distinct count = 50. Numbering jumps TP44 → TP46. The gap accumulated across waves when a testpoint was renamed or deleted without renumbering subsequent IDs.
+
+LINT-003 verifies the Feature ↔ Testpoint *mapping* presence but ignores ID sequence integrity.
+
+**Worked-example impact**: A6 wave `SLIDES.md` Closing-slide carried "51 testpoints" — a max-ID claim, not a count claim. Caught manually during a content-spec consistency audit. Without the audit, the claim would have shipped to internal review.
+
+**Disposition**: DEFERRED.
+
+**Candidate plugin change**: LINT-003 extension OR new LINT-010 — extract every `TP\d+` ID from `dv/plan.md`, verify sequence is contiguous (no gaps, no duplicates). Report includes both the count and the max ID, distinguishing the two values.
+
+## 11. Spec-stats numeric summary not surfaced by /spec-status
+
+**Symptom**: A6 wave required repeated ad-hoc grep commands to extract canonical statistics (rule count 136, testpoint count 50, ABV count 136, parameter defaults). `/spec-status` reports D-stage progression but does not surface these aggregate numbers. Authors producing summaries — slide-deck closings, READMEs, status reports, NEXT_SESSION handoff docs — extract the same numbers manually each session.
+
+Repeated greps observed in A6 wave:
+
+```
+grep "^| AXI4_\|NOC_\|NI_" dv/plan.md | ...   # rule count
+grep -oE "^| TP[0-9]+" dv/plan.md | sort -u | wc -l   # testpoint count
+grep "126 FAIL\|10 RECOMMEND" dv/plan.md      # ABV breakdown
+```
+
+**Disposition**: DEFERRED.
+
+**Candidate plugin change**: extend `/spec-status` with `--stats` flag, or new `/spec-stats` command:
+
+- Rule count from `protocol_rules.md` (FAIL / RECOMMEND breakdown).
+- Testpoint count from `dv/plan.md` (distinct `TP\d+`, with max-ID separately reported per §10 distinction).
+- ABV count from `dv/plan.md`.
+- Parameter default summary from `signal_interface.md`.
+- Cross-cited by LINT-010 (sequence-gap detection from §10) — `/spec-stats` provides the raw counts, LINT-010 enforces the invariants.
+
+## 12. Cross-doc rename not assisted
+
+**Symptom**: A6 wave's industry-vocab fix (§9) requires renaming `(B)-philosophy` → `log-and-forward fabric error reporting` across 5 spec files. No plugin utility helps:
+
+- Each file's hit needs context judgement (body / Speaker-notes provenance / inline-historical-note).
+- Casing or hyphenation variants might appear (`(B)-philosophy` vs `B philosophy` vs `b-philosophy`).
+- Dry-run preview before bulk apply is manual.
+
+Authors fall back to `git grep` plus iterative `Edit` calls. Error-prone for terms appearing in dense prose where mechanical replace would clobber provenance context.
+
+**Disposition**: DEFERRED.
+
+**Candidate plugin change**: new `/spec-rename <old> <new> [--dry-run]` command:
+
+- Scan spec source files. List each hit with `file:line:context` snippet.
+- Classify each hit: body (apply), Speaker-notes / explicit-provenance (skip with reason), heading / register name (review needed).
+- Produce impact report. Author confirms before `--apply`.
+- Complement to §2 LINT-008 (passive detection) and §9 LINT-009 (passive enforcement). Active rename is a separate command.
+
+## 13. `NEXT_SESSION_<wave>.md` handoff pattern undocumented
+
+**Symptom**: Handoff doc convention used in A4 wave (post-A4.7), A5 wave (post-A5 closure), and A6 wave (`spec/ni/NEXT_SESSION_A6.md`). Each wave's author reinvents the structure. Some have "Status snapshot + Deferred tasks" sections, others have "Quick re-entry checklist + Reminders to future self". The pattern works — but inconsistency makes cross-session handoff brittle.
+
+**Disposition**: DEFERRED.
+
+**Candidate plugin change**: new `references/process/wave_handoff.md` template with fixed sections:
+
+- Status snapshot (mode, lint status, deferred-task state, last-commit hash)
+- Deferred tasks (each with priority, blocker analysis, concrete first step, acceptance criteria, estimated effort)
+- Quick re-entry checklist (5-minute sanity checks for next-session start)
+- Reminders to future self (gotchas, design decisions deliberately deferred, scope boundaries)
+
+OR new `/spec-handoff <wave>` command that scaffolds the file from a current-spec snapshot (auto-populates Status snapshot via /spec-stats from §11).
+
 ## Cross-cutting plugin enhancements (from A5 multi-agent implementer review)
 
 The A5 wave introduced a new validation method beyond the existing `/spec-review` reader test: spawning paired implementer agents (one C-model, one RTL) and comparing their independent reads of the spec.
@@ -82,19 +180,21 @@ Both agents converged on the same top-priority ambiguities (flit bit layout miss
 
 This validates the proposition that **cross-paradigm implementer review surfaces a different class of ambiguity than reader test**. Reader test catches "is this answerable from spec text". Implementer review catches "would two paradigm-different implementations produce bit-identical wire behaviour."
 
-**Disposition**: PROPOSED for plugin v0.4.0. Tracked design candidate: new `/spec-implementer-review` command spawning paradigm-paired agents, generating a cross-diff of ambiguities, optionally feeding into a `D1.cross.implementer_review` gate item.
+**Disposition**: APPLIED in plugin v0.4.0 via `/spec-implementer-review` command, `agents/implementer-reviewer.md` subagent, and `references/process/implementer_review.md`. Stage-gate item `D1.cross.implementer_review` added.
 
 ## Priority for plugin work
 
 When the user invests in plugin improvement (vs continuing dogfood):
 
-1. Prevent systemic errors first: §1, §4, §7 (writing-principles + lint rules)
-2. Improve workflow next: §2, §5, §6 (cross-doc impact tooling)
-3. Stabilise infrastructure: §3, §8 (gate ↔ rule mapping, vocabulary lint)
-4. Cross-cutting innovation: multi-agent implementer review (proposed v0.4.0)
+1. **Prevent systemic errors first**: §1, §4, §7 (writing-principles + lint rules).
+2. **Improve workflow next**: §2, §5, §6 (cross-doc impact tooling).
+3. **Stabilise infrastructure**: §3, §8 (gate ↔ rule mapping, vocabulary lint).
+4. **Cross-cutting innovation**: multi-agent implementer review (APPLIED v0.4.0).
+5. **A6 dogfood — concrete and immediate (post-v0.4.0)**: §9, §10, §11 (industry-vocab residue lint, TP sequence gap, /spec-stats). Small, immediate value with concrete evidence.
+6. **A6 dogfood — quality-of-life**: §12, §13 (/spec-rename utility, wave-handoff template).
 
-Each item should pair with a worked example pulled from the noc-sim dogfood (e.g., A4 VC_ARB_MODE for §1, A4.6 ECC attribution for §4, A4.7 14-file scope expansion for §2) when the plugin change lands.
+Each item should pair with a worked example pulled from the noc-sim dogfood (e.g., A4 VC_ARB_MODE for §1, A4.6 ECC attribution for §4, A4.7 14-file scope expansion for §2, A6 `(B)-philosophy` 5-file residue for §9, A6 TP45 gap for §10) when the plugin change lands.
 
 ## Source waves
 
-A1 (initial spec), A2 (v0.4.0 header restructure), A3 (runtime CSR), A4 (runtime control), A4.5 (FlooNoC port_id removal), A4.6 (AMD ECC alignment), A4.7 (drop VR mode), A4.8 (review-driven precision fixes), A5 (pre-presentation polish + multi-agent implementer review).
+A1 (initial spec), A2 (v0.4.0 header restructure), A3 (runtime CSR), A4 (runtime control), A4.5 (FlooNoC port_id removal), A4.6 (AMD ECC alignment), A4.7 (drop VR mode), A4.8 (review-driven precision fixes), A5 (pre-presentation polish + multi-agent implementer review), A6 (slide deck refactor + industry-vocab research; plugin observations §9–§13).
