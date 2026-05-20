@@ -183,6 +183,43 @@ LINT-013 in registers.md:CTRL
   (INFO) CTRL bits [31:18] and [5:4] are not covered by any field (Reserved holes).
 ```
 
+### LINT-015: Cross-file scalar consistency
+
+Applies in both modes. The same signal or parameter is often described in 2+ files (`signal_interface.md` declares a width, `theory_of_operation.md` describes it; a parameter default appears in the interface table and again in prose). This rule flags disagreement on a scalar attribute — width or value — across files. Item I (implementer review) catches architectural pairs but not scalar-attribute drift.
+
+Procedure:
+1. Extract **structured declarations only**: `<identifier>[hi:lo]` bit-width declarations (from signal tables) and `<PARAM> = <value>` defaults (from parameter tables). **Do not infer a width from prose** ("16-bit read data", "two 32-bit halves") — prose is not a declaration, and matching it produces false positives.
+2. Group by identifier across files.
+3. **FAIL** only when the same identifier carries two different `[hi:lo]` declarations, or the same parameter two different declared default values, in different files.
+4. Ignore identifiers that appear in only one file, and any width mentioned only in prose (not a declaration).
+
+**Violation example:**
+```
+LINT-015 cross-file
+  Identifier `prdata`: signal_interface.md:22 declares [31:0]; channel_api.md:40 declares [15:0].
+  Problem: same signal declared at two widths.
+  Suggested fix: reconcile — one declaration is stale.
+```
+
+### LINT-016: Stale WAIVERS anchor
+
+Applies in both modes when `WAIVERS.md` exists. A waiver cites a stage-gate anchor (e.g. `D1.bfm.protocol_rules`). If that anchor was retired or renamed in `stage_gates.md`, the waiver silently suppresses a check that no longer maps to it.
+
+Procedure:
+1. Extract gate-anchor IDs **only from the waiver-entry headings** (`## <anchor-id>`) in `WAIVERS.md` — not from copied item text, change history, or explanatory prose, which would over-warn.
+2. Extract the canonical anchor-ID set from `stage_gates.md` (the `(id: ...)` tokens).
+3. **WARN** on any waiver heading citing an anchor absent from the canonical set — the waiver is stale and should be re-pointed or removed.
+
+Protects the `stage_gates.md` ↔ `WAIVERS.md` contract that `/spec-gate` relies on.
+
+**Violation example:**
+```
+LINT-016 in WAIVERS.md:12
+  Cites anchor `D1.bfm.old_rule_name` — not present in current stage_gates.md.
+  Problem: stale waiver; suppresses nothing or the wrong thing.
+  Suggested fix: re-point to the current anchor or delete the waiver.
+```
+
 ---
 
 ## BFM-mode lint rules
@@ -311,6 +348,8 @@ Violations found: <total>
   LINT-007 (missing SVG):                  <count>
   LINT-010 (testpoint ID uniqueness):      <count>
   LINT-013 (register bit-overlap):         <count>
+  LINT-015 (cross-file scalar consistency):<count>
+  LINT-016 (stale WAIVERS anchor):         <count>
   LINT-BFM-001 (wire-set parity):          <count> (BFM mode only)
   LINT-BFM-002 (rule ID format):           <count> (BFM mode only)
   LINT-BFM-003 (rule completeness):        <count> (BFM mode only)

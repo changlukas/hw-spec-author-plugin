@@ -97,8 +97,20 @@ Available commands:
       Produces IMPLEMENTER_REVIEW_LOG.md.
 
   /spec-lint [path]
-      Mechanical consistency check (mode-aware). LINT-001..007 always;
-      LINT-BFM-001..005 additionally in protocol-bfm mode.
+      Mechanical consistency check (mode-aware). LINT-001..007 + 010/013/015/016
+      always; LINT-BFM-001..005 additionally in protocol-bfm mode.
+
+  /spec-impact <change-description> [--analyse]
+      Map the cross-file ripple of a proposed change (read-only). Phase 1
+      mechanical keyword grep; Phase 2 LLM section-impact via --analyse.
+
+  /spec-rename <old> <new> [--dry-run] [-i]
+      Rename a term across the spec, interactively, with per-hit context
+      tags (register / signal / heading / body). Case-sensitive default.
+
+  /spec-handoff <wave-name> [path]
+      Scaffold NEXT_SESSION_<wave>.md with 4 fixed sections; auto-fills the
+      status snapshot from /spec-stats + last git commit.
 
   /spec-gate <D1|D2|D3> [path]
       Check whether spec meets criteria for the target gate

@@ -30,11 +30,24 @@
 
 ---
 
-## 此 marketplace 內含什麼（v0.5.0）
+## 此 marketplace 內含什麼（v0.6.0）
 
 | Plugin | 描述 |
 |---|---|
 | [`hw-spec-author`](./plugins/hw-spec-author/) | 為數位 IP 撰寫硬體設計規格書。兩種 mode：**behavioral-block**（OpenTitan-Comportability 風格 6-file 結構）與 **protocol-bfm**（9–11 file 結構，含 pin 級嚴謹度、protocol rules、transaction/channel API）。兩種 mode 都有 D0→D3 stage gates 與 reader testing。 |
+
+**v0.6.0** 新增 improvement plan 的 Stage 2 工作流命令與跨檔 lint 規則。
+
+v0.6.0 新增：
+
+- **`/spec-impact <change>`** —— 攤出一個變更的跨檔波及範圍（read-only）：機械 keyword grep，加上 opt-in `--analyse` 的 LLM 章節影響分析。
+- **`/spec-rename <old> <new>`** —— 跨檔互動式改名，預設 case-sensitive，每個 hit 標註結構脈絡（register / signal / heading / body），register 名稱重疊會被標示而非誤改。
+- **`/spec-handoff <wave>`** —— scaffold 出含四個固定 section 的 `NEXT_SESSION_<wave>.md`，status snapshot 由 `/spec-stats` 與最後一次 commit 自動填。
+- **LINT-015**（cross-file scalar consistency）—— 同一 signal/parameter 在不同檔宣告成不同寬度或值時 FAIL。
+- **LINT-016**（stale WAIVERS anchor）—— waiver 引用已不存在的 stage-gate anchor 時 WARN。
+- 新 gate item **`D1.cross.delta_from_plan`** —— 要求 `PLAN_DELTA.md` 列出原 plan 沒有的每條 clause（或明確 N/A），防止未請求的複雜度累積。
+
+原規劃的 attribution-verbatim lint 經調查後**捨棄**：機械上無法區分合法的「per AXI4-Lite」引用與錯誤歸因，會大量誤報；attribution 正確性維持為 review-time 任務。
 
 **v0.5.0** 新增第一批 dogfood 驅動的 lint 與報告工具，並把 v0.3.1 之後 ship、但當時未單獨 bump 版本的 `/spec-implementer-review` 命令一併納入版本。
 

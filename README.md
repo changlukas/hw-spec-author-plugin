@@ -30,11 +30,24 @@ The framework is silicon-proven for behavioral-block mode: OpenTitan uses it acr
 
 ---
 
-## What's shipped in this marketplace (v0.5.0)
+## What's shipped in this marketplace (v0.6.0)
 
 | Plugin | Description |
 |---|---|
 | [`hw-spec-author`](./plugins/hw-spec-author/) | Authors hardware design specs for digital IP blocks. Two modes: **behavioral-block** (OpenTitan-Comportability 6-file structure) and **protocol-bfm** (9–11-file structure with pin-level rigor, protocol rules, transaction/channel API). D0→D3 stage gates and reader-testing in both modes. |
+
+**v0.6.0** adds the Stage 2 workflow commands and cross-file lint rules from the improvement plan.
+
+New in v0.6.0:
+
+- **`/spec-impact <change>`** — maps the cross-file ripple of a proposed change (read-only): a mechanical keyword grep, plus an opt-in `--analyse` LLM section-impact pass.
+- **`/spec-rename <old> <new>`** — renames a term across the spec interactively, case-sensitive by default, tagging each hit with its structural context (register / signal / heading / body) so a register-name overlap is flagged, not clobbered.
+- **`/spec-handoff <wave>`** — scaffolds a `NEXT_SESSION_<wave>.md` with four fixed sections; auto-fills the status snapshot from `/spec-stats` and the last commit.
+- **LINT-015** (cross-file scalar consistency) — FAIL when the same signal or parameter is declared at two different widths or values across files.
+- **LINT-016** (stale WAIVERS anchor) — WARN when a waiver cites a stage-gate anchor that no longer exists.
+- New gate item **`D1.cross.delta_from_plan`** — requires a `PLAN_DELTA.md` enumerating any clause not in the original plan (or an explicit N/A), guarding against unrequested-complexity creep.
+
+A planned attribution-verbatim lint was investigated and **dropped**: it cannot distinguish a legitimate "per AXI4-Lite" reference from a mis-attributed claim without heavy false positives, so attribution-correctness stays a review-time concern.
 
 **v0.5.0** adds the first batch of dogfood-driven lint and reporting tools, and folds in the `/spec-implementer-review` command that shipped after v0.3.1 without its own version bump.
 
