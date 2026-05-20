@@ -6,7 +6,8 @@
 
 **Revision log**:
 - v1 (initial): 12 items A–L, P0 = A+B+C+D.
-- v2 (this, post cross-review): D demoted out of P0 (verified false-positive on `examples/wctmr/doc/registers.md:104`). B revised to uniqueness-not-contiguity (B′). Three items added: M (register bit-overlap, promoted to P0), N (cross-file scalar consistency), O (stale WAIVERS anchor). K gated on a measured false-positive rate. Nine open questions resolved. §2 rationale tightened.
+- v2 (post cross-review): D demoted out of P0 (verified false-positive on `examples/wctmr/doc/registers.md:104`). B revised to uniqueness-not-contiguity (B′). Three items added: M (register bit-overlap, promoted to P0), N (cross-file scalar consistency), O (stale WAIVERS anchor). K gated on a measured false-positive rate. Nine open questions resolved. §2 rationale tightened.
+- v3 (Stage 1 + Stage 2 implemented): Stage 1 (A, B′, C, M) shipped in v0.5.0. Stage 2 (E, F, G, H, N, O) shipped in v0.6.0. **D dropped entirely** — running the proposed rule against the AXI4-Lite example showed it false-positives on ~10 legitimate "per AXI4-Lite / per ARM" references; attribution-correctness is not mechanically checkable and stays a review-time concern (codex cross-check + reader/implementer review). Deviations from §3: G's handoff template is inlined in the command (no separate reference doc, to avoid template drift); the gate anchor is named `D1.cross.delta_from_plan` (section-consistent with the existing `D1.cross.*` items) rather than the `D1.delta_from_plan` the plan text used; the `D1.cross.delta_from_plan` acceptance artifact is pinned to `PLAN_DELTA.md` for mechanical gating (per Stage-2 codex cross-check).
 
 ---
 
@@ -159,7 +160,7 @@ LINT-013 (register bit-overlap)
 
 ---
 
-#### D. LINT-011 — attribution verbatim (DEMOTED from P0 to P1 after cross-review)
+#### D. LINT-011 — attribution verbatim (DROPPED — not mechanically viable; see v3 revision log)
 
 **Problem**. `DOGFOOD §4` records wave A4.6: prose "AMD: 每個 64-bit data granule 一個 8-bit ECC" attributed to AMD pg313. The pg313 verbatim is whole-flit SECDED. The paraphrase originated in the author's own draft and was mis-attributed across editing rounds.
 
@@ -453,8 +454,8 @@ Stage 1 (P0 bundle):    A + B′ + C + M     → ~1.5 day, single PR
                         Acceptance: run all four against BOTH examples; zero false positives
                         — the bar is run, not asserted.
 
-Stage 2 (P1 individual): D → E → F → G → H → N → O   → individual PRs
-                        D leads: it needs the regex rework before it ships at all.
+Stage 2 (P1 individual): E → F → G → H → N → O   → shipped in v0.6.0
+                        (D dropped — not mechanically viable; see revision log)
                         Each lands with worked-example regression evidence.
 
 Stage 3 (P2 opportunistic): I → J → K → L
