@@ -11,7 +11,7 @@
     {
       "name": "hw-spec-author",
       "description": "Authors clean, complete, audience-segregated hardware design specifications for digital IP blocks. Two modes: behavioral-block (OpenTitan-Comportability 6-file structure) and protocol-bfm (9-11 file structure with pin-level rigor, protocol rules, transaction/channel API). D0-D3 stage gates and reader-testing in both modes. Includes /spec-import for restructuring existing docs (behavioral-block only).",
-      "version": "0.3.1",
+      "version": "0.5.0",
       "source": "./plugins/hw-spec-author",
       "category": "hardware-design",
       "keywords": [

@@ -53,7 +53,7 @@ LINT-001 in registers.md:42
 Per `writing_principles.md` §6, every TODO must have an owner and a tracking link or explicit "no issue yet" rationale.
 
 Scan for these patterns:
-- `TODO(designer):` — must be followed by issue link, e.g. `(see #42)` or `(no issue yet — <reason>)`
+- `TODO(designer):` — must carry a rationale, in **either** form (both are semantically equivalent): a parenthesised issue/reason `(see #42)` / `(no issue yet — <reason>)`, **or** an em-dash rationale `TODO(designer): <description> — <rationale>`. Only a bare `TODO(designer):` with no rationale in either form is a violation.
 - Bare `TBD` — always a violation; should be `TODO(designer): <description> (...)`
 - `IMPLEMENTATION-DEFINED:` — must include a brief justification
 
@@ -142,6 +142,47 @@ If a file references an SVG (e.g., `![block diagram](block_diagram.svg)`), verif
 
 Mermaid blocks are inline and self-contained, so do not need this check.
 
+### LINT-010: Testpoint ID uniqueness
+
+Applies in both modes. Verifies testpoint IDs in `dv/plan.md` are unique. This is a uniqueness check, not a contiguity check.
+
+Procedure:
+1. Extract testpoint IDs from **testpoint-definition rows only** — table rows whose first cell is a testpoint ID, matched as `^\| *TP-?\d+ *\|` inside the `## Testpoints` table. Do **not** count prose references or range mentions such as `TP-01..TP-15` or `see TP-03` — those are references, not definitions, and counting them produces false duplicates (verified against `examples/wctmr/dv/plan.md`, where the stages table line "All TP-01..TP-15 sanity-passing" must not be read as redefining TP-01 and TP-15). Match both conventions with `TP-?\d+`: protocol-bfm specs write `TP1`, behavioral-block specs write `TP-01`. The no-hyphen pattern alone reports 0 testpoints for a behavioral-block spec — a silent miss.
+2. Report the distinct count and the max ID separately, computed over definition rows.
+3. **FAIL** on any duplicate ID — the same TP number on two different testpoint-definition rows.
+4. **INFO** (not FAIL) on numbering gaps. A spec that numbers testpoints by category (e.g. `TP1xx` datapath, `TP2xx` key-schedule, `TP3xx` side-channel) is well-organised yet non-contiguous. Contiguity is a project convention, not a universal invariant. Surface the gap so a "we have N testpoints" claim is not silently a max-ID claim, but do not fail on it.
+
+**Violation example:**
+```
+LINT-010 in dv/plan.md
+  Duplicate testpoint ID: TP-05 appears on two rows (lines 38 and 51).
+  Problem: ambiguous reference — two testpoints cannot share an ID.
+  Suggested fix: renumber one of them.
+
+  (INFO) Numbering gap: IDs present 1..20 except 15. distinct=19, max-ID=20.
+  Not a violation — surfaced so the count is not conflated with the max ID.
+```
+
+### LINT-013: Register field bit-overlap and width overflow
+
+Applies in both modes when `doc/registers.md` exists. Parses register field tables and asserts the bit layout is physically consistent. This is a pure structural parse with near-zero false-positive risk — it asserts an invariant over a declared structure rather than pattern-matching prose.
+
+Procedure:
+1. For each register that has a field table (a `Bits` or `Bit` column), extract every field's bit range. Accept `[hi:lo]`, `[bit]`, single-bit, and `hi:lo` forms. A single Bits cell may list **multiple comma-separated ranges** (e.g. `[15:6], [31:18]` for a split Reserved field) — split on commas and treat each sub-range as covered by that field. Reserved rows (field name or access shown as `—`) count as **coverage**, not as bit holes.
+2. **FAIL** if two fields in the same register claim overlapping bit ranges.
+3. **FAIL** if a field's high bit exceeds the register width minus one (width overflow). Register width comes from the declared data width or the register's stated width. If width is not stated, infer the conventional 32 and note the assumption rather than failing on an unstated width.
+4. **INFO** on unused bit holes — bits not covered by any field. Common and legal (Reserved). Surfaced for awareness, not a violation.
+
+**Violation example:**
+```
+LINT-013 in registers.md:CTRL
+  Fields "mode" [3:0] and "enable" [3] overlap on bit 3.
+  Problem: a bit cannot belong to two fields.
+  Suggested fix: correct one field's range.
+
+  (INFO) CTRL bits [31:18] and [5:4] are not covered by any field (Reserved holes).
+```
+
 ---
 
 ## BFM-mode lint rules
@@ -161,6 +202,10 @@ Procedure:
 4. Report `W \ R_during` (wires missing from during-reset).
 5. Report `W \ R_after` (wires missing from after-reset).
 6. Report `R_during \ W` and `R_after \ W` (extra wires not in signal_interface §Wire table).
+
+**Grouped rows**: `pin_level_reset.md` may collapse multiple wires into one row when they share an identical `(reset value, channel, direction)` tuple — e.g. `awlen / awsize / awburst / awcache` all resetting to the same value on the same channel. Treat each wire named in a grouped row as present. Do not flag a grouped row as a missing-wire violation. Reader clarity, not one-row-per-wire, is the goal.
+
+**Channel-less interfaces**: if `signal_interface.md` declares no channel grouping (a flat wire list, common for non-AXI blocks), key the grouped-row allowance on `(reset value, direction)` only. Do not require a `channel` axis that the interface does not have.
 
 **Violation example:**
 ```
@@ -264,6 +309,8 @@ Violations found: <total>
   LINT-005 (port casing):                  <count>
   LINT-006 (reset value format):           <count>
   LINT-007 (missing SVG):                  <count>
+  LINT-010 (testpoint ID uniqueness):      <count>
+  LINT-013 (register bit-overlap):         <count>
   LINT-BFM-001 (wire-set parity):          <count> (BFM mode only)
   LINT-BFM-002 (rule ID format):           <count> (BFM mode only)
   LINT-BFM-003 (rule completeness):        <count> (BFM mode only)

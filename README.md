@@ -30,13 +30,25 @@ The framework is silicon-proven for behavioral-block mode: OpenTitan uses it acr
 
 ---
 
-## What's shipped in this marketplace (v0.3.1)
+## What's shipped in this marketplace (v0.5.0)
 
 | Plugin | Description |
 |---|---|
 | [`hw-spec-author`](./plugins/hw-spec-author/) | Authors hardware design specs for digital IP blocks. Two modes: **behavioral-block** (OpenTitan-Comportability 6-file structure) and **protocol-bfm** (9–11-file structure with pin-level rigor, protocol rules, transaction/channel API). D0→D3 stage gates and reader-testing in both modes. |
 
-**v0.3.1** is a documentation-only patch release that aligns `TODO(designer):` format guidance across the generation side (SKILL.md, /spec-init, /spec-import) and the verification side (writing_principles.md §6, /spec-lint LINT-002, /spec-gate `D1.cross.todos_tracked`). The two canonical formats — `(see #N)` for tracked work and `(no issue yet — <reason>)` for sandbox/pending decisions — are now uniformly enforced from generation through gate, eliminating a documented dogfood-rework class. No spec content changes; existing v0.3.0 specs remain valid as long as their TODO markers were already in canonical form.
+**v0.5.0** adds the first batch of dogfood-driven lint and reporting tools, and folds in the `/spec-implementer-review` command that shipped after v0.3.1 without its own version bump.
+
+New in v0.5.0:
+
+- **`/spec-stats`** — mode-aware aggregate counts (rule FAIL/RECOMMEND split, distinct testpoint count and max-ID, ABV count, register count, parameter defaults) — the numbers authors otherwise grep by hand for slide decks, READMEs, and handoff notes.
+- **LINT-010** (testpoint ID uniqueness) — FAIL on duplicate IDs, INFO on numbering gaps. Checks uniqueness, not contiguity, so a DV plan that numbers testpoints by category is not penalised.
+- **LINT-013** (register field bit-overlap / width overflow) — a pure structural parse of register field tables; near-zero false-positive risk.
+- Loosened **LINT-002** (accepts an em-dash TODO rationale) and **LINT-BFM-001** (accepts grouped reset rows and channel-less interfaces) to cut false-positive noise.
+- **`/spec-implementer-review`** — multi-agent paradigm-paired review (protocol-bfm + has-rtl-counterpart) that surfaces bit-equivalence ambiguities the reader test cannot.
+
+Every lint change ships with a worked-example regression run against both bundled examples — the acceptance bar is run, not asserted.
+
+Prior releases: v0.3.1 aligned `TODO(designer):` format guidance across generation and verification; v0.3.0 added protocol-bfm mode.
 
 ---
 
@@ -93,7 +105,7 @@ Walk through these questions in order:
 
 2. **Will you (or someone else) write a cycle-accurate C/C++/SystemC/UVM model** of this block, **alongside an RTL implementation, both behaviorally equivalent at the wire boundary?**
    - **Yes** → **`protocol-bfm`** with `has-rtl-counterpart: yes`. Spec serves both implementations: shared protocol contract + separate internal architecture sections (BFM-internal: driver/monitor/sequencer; RTL-internal: register file/decoder/pipeline).
-   - **No, only an RTL implementation** → use **`behavioral-block`** for now. (Future v0.4.0 may add a "rtl-protocol-block" variant; for v0.3.0 the `behavioral-block` template's `theory_of_operation.md` is closer fit.)
+   - **No, only an RTL implementation** → use **`behavioral-block`** for now. (Until a dedicated RTL-protocol variant exists, the `behavioral-block` template's `theory_of_operation.md` is the closer fit.)
 
 3. **Is this a pure verification artifact** (a BFM/VIP that has no RTL counterpart, written purely to verify someone else's RTL)?
    - **Yes** → **`protocol-bfm`** with `has-rtl-counterpart: no`. Spec describes BFM internal architecture, testbench-API surface, and protocol contract.

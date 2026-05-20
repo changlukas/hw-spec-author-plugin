@@ -80,6 +80,12 @@ Available commands:
       Inspect existing spec (mode-aware). Reports current D-stage against
       the mode-appropriate checklist and what's missing.
 
+  /spec-stats [path]
+      Report aggregate counts (mode-aware, read-only): rule count with
+      FAIL/RECOMMEND split, distinct testpoint count and max-ID, ABV
+      property count, register count, parameter defaults. The numbers
+      authors otherwise grep by hand for decks / READMEs / handoffs.
+
   /spec-review [path]
       Run reader test (via spec-reader subagent for true isolation).
       8–12 ambiguity-targeting questions drawn from the mode-matched bank.
