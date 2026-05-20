@@ -21,8 +21,11 @@ venv/
 # Node (in case any js tooling is added)
 node_modules/
 
-# Local Claude Code state
-.claude/settings.local.json
+# Local Claude Code state (per-machine working state, not part of the plugin)
+.claude/
+
+# Stray local files
+1.jpg
 
 # Build artifacts
 *.skill
